@@ -21,12 +21,41 @@
 	 os_started/1,
 	 os_stopped/0,
 	 os_stopped/1,
+	 node_started/0,
+	 node_started/1,
+	 node_stopped/0,
+	 node_stopped/1,
 	 start/0
 	]).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% -------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+
+node_started(HostName)->
+    lists:member(HostName,node_started()).
+node_stopped(HostName)->
+    lists:member(HostName,node_stopped()).
+
+node_started()->
+    {ok,Started,_Stopped}=node_check(),
+    Started.
+node_stopped()->
+    {ok,_Started,Stopped}=node_check(),
+    Stopped.
+
+node_check()->
+    AllHosts=lists:sort(host_config:host()),
+    
+    CheckResult=[{Host,net_adm:ping(host_config:node(Host))}||Host<-AllHosts],
+    Started=[Host||{Host,pong}<-CheckResult],
+    Stopped=[Host||{Host,pang}<-CheckResult],
+    {ok,Started,Stopped}.
 
 %% -------------------------------------------------------------------
 %% Function:start/0 

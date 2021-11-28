@@ -9,7 +9,7 @@
 	      {ssh_port,22},
 	      {uid,"pi"},
 	      {pwd,"festum01"},
-	      {node,'kublet@c203'}
+	      {node,'host@c203'}
 	     ]
 }.
 	      
@@ -21,8 +21,8 @@
 %% ---------------------- erlang start info -----------------------
 {start_args,[{erl_cmd,"/snap/erlang/current/usr/bin/erl -detached"},
              {cookie,"cookie"},
-	     {env_vars,"-kubelet mode worker"},
-	     {nodename,"kublet"}
+		{env_vars,[{kublet,[{mode,worker}]}]},		
+	     {nodename,"host"}
 	    ]
 }.
 

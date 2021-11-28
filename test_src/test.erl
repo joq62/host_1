@@ -35,9 +35,9 @@ start()->
     ok=config(),
     io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %  io:format("~p~n",[{"Start hosts()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  %  ok=hosts(),
-  %  io:format("~p~n",[{"Stop hosts()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %  io:format("~p~n",[{"Start os()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=os(),
+    io:format("~p~n",[{"Stop os()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
   %  io:format("~p~n",[{"Start pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
 %    ok=pass_0(),
@@ -59,8 +59,8 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-hosts()->
-    ok=rpc:call(node(),hosts_test,start,[],2*60*1000),
+os()->
+    ok=rpc:call(node(),os_test,start,[],2*60*1000),
     ok.
 
 %% --------------------------------------------------------------------
@@ -69,7 +69,7 @@ hosts()->
 %% Returns: non
 %% --------------------------------------------------------------------
 config()->
-    ok=rpc:call(node(),config_test,start,[],30*1000),
+    ok=rpc:call(node(),config_test,start,[],2*60*1000),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 

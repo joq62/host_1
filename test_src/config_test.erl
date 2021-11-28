@@ -31,13 +31,17 @@ start()->
     ok=setup(),
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start access_info()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    io:format("~p~n",[{"Start access_info()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=access_info(),
     io:format("~p~n",[{"Stop access_info()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start status()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=status(),
-    io:format("~p~n",[{"Stop status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   io:format("~p~n",[{"Start os_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=os_status(),
+    io:format("~p~n",[{"Stop os_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+ %   io:format("~p~n",[{"Start node_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=node_status(),
+    io:format("~p~n",[{"Stop node_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %   io:format("~p~n",[{"Start start_args()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=start_args(),
@@ -46,6 +50,11 @@ start()->
 %   io:format("~p~n",[{"Start detailed()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=detailed(),
     io:format("~p~n",[{"Stop detailed()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+%   io:format("~p~n",[{"Start start_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=start_stop(),
+ %   io:format("~p~n",[{"Stop start_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
 
 
  %   
@@ -62,17 +71,27 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
+
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+ 
+
+
 detailed()->
     
     "192.168.0.201"=host_config:ip("c201"),
     22=host_config:ssh_port("c201"),
     "joq62"=host_config:uid("c201"),
     "festum01"=host_config:passwd("c201"),
-    kublet@c201=host_config:node("c201"),
+    host@c201=host_config:node("c201"),
 
-    "erl -detached"=host_config:erl_cmd("c201"),
-    "-kubelet mode controller"=host_config:env_vars("c201"),
-    "kublet"=host_config:nodename("c201"),
+    "/lib/erlang/bin/erl -detached"=host_config:erl_cmd("c201"),
+    [{kublet,[{mode,controller}]}]=host_config:env_vars("c201"),
+    "host"=host_config:nodename("c201"),
     "cookie"=host_config:cookie("c201"),
     
     ok.
@@ -83,15 +102,15 @@ detailed()->
 %% Returns: non
 %% -------------------------------------------------------------------
 start_args()->
-    [{erl_cmd,"erl -detached"},
-     {cookie,"cookie"},
-     {env_vars,"-kubelet mode controller"},
-     {nodename,"kublet"}]=host_config:start_args("c200"),
+   [{erl_cmd,"/lib/erlang/bin/erl -detached"},
+    {cookie,"cookie"},
+    {env_vars,[{kublet,[{mode,controller}]}]},
+    {nodename,"host"}]=host_config:start_args("c200"),
     
     [{erl_cmd,"/snap/erlang/current/usr/bin/erl -detached"},
      {cookie,"cookie"},
-     {env_vars,"-kubelet mode worker"},
-     {nodename,"kublet"}]=host_config:start_args("c203"),
+     {env_vars,[{kublet,[{mode,worker}]}]},
+     {nodename,"host"}]=host_config:start_args("c203"),
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -103,18 +122,18 @@ access_info()->
     AllAccesInfo=host_config:access_info(),
     ["c200","c201","c202","c203"]=lists:sort(host_config:host()),
 
-    [{hostname,"c200"}, 
+    [{hostname,"c200"},
      {ip,"192.168.0.200"},
      {ssh_port,22},
      {uid,"joq62"},
      {pwd,"festum01"},
-     {node,kublet@c200}]=host_config:access_info("c200"),
-    [{hostname,"c203"}, 
+     {node,host@c200}]=host_config:access_info("c200"),
+    [{hostname,"c203"},
      {ip,"192.168.0.203"},
      {ssh_port,22},
      {uid,"pi"},
      {pwd,"festum01"},
-     {node,kublet@c203}]=host_config:access_info("c203"),
+     {node,host@c203}]=host_config:access_info("c203"),
     
     ok.
 
@@ -123,7 +142,7 @@ access_info()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-status()->
+os_status()->
     Started=lib_status:os_started(),
     Stopped=lib_status:os_stopped(),
     io:format("Started = ~p~n",[Started]),
@@ -132,6 +151,24 @@ status()->
     io:format("Started(c200) = ~p~n",[lib_status:os_started("c200")]),
     io:format("Started(c100) = ~p~n",[lib_status:os_started("c100")]),
     io:format("Stopped(c203) = ~p~n",[lib_status:os_stopped("c203")]),
+
+    
+    ok.
+    
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+node_status()->
+    Started=lib_status:node_started(),
+    Stopped=lib_status:node_stopped(),
+    io:format("Started = ~p~n",[Started]),
+    io:format("Stopped = ~p~n",[Stopped]),
+    
+    io:format("Started(c200) = ~p~n",[lib_status:node_started("c200")]),
+    io:format("Started(c100) = ~p~n",[lib_status:node_started("c100")]),
+    io:format("Stopped(c203) = ~p~n",[lib_status:node_stopped("c203")]),
 
     
     ok.
@@ -226,13 +263,13 @@ access_info_all()->
 	{ssh_port,22},
 	{uid,"joq62"},
 	{pwd,"festum01"},
-	{node,kublet@c201}]},
+	{node,host@c201}]},
       {host_type,[{type,auto_erl_controller}]},
       {start_args,
-       [{erl_cmd,"erl -detached"},
+       [{erl_cmd,"/lib/erlang/bin/erl -detached"},
 	{cookie,"cookie"},
-	{env_vars,"-kubelet mode controller"},
-	{nodename,"kublet"}]},
+	{env_vars,[{kublet,[{mode,controller}]}]},
+	{nodename,"host"}]},
       {dirs_to_keep,["logs"]},
       {application_dir,"applications"}],
      [{hostname,"c203"},
@@ -242,13 +279,13 @@ access_info_all()->
 	{ssh_port,22},
 	{uid,"pi"},
 	{pwd,"festum01"},
-	{node,kublet@c203}]},
-      {host_type,[{type,non_auto_erl_workerr}]},
+	{node,host@c203}]},
+             {host_type,[{type,non_auto_erl_workerr}]},
       {start_args,
        [{erl_cmd,"/snap/erlang/current/usr/bin/erl -detached"},
 	{cookie,"cookie"},
-	{env_vars,"-kubelet mode worker"},
-	{nodename,"kublet"}]},
+	{env_vars,[{kublet,[{mode,worker}]}]},
+	{nodename,"host"}]},
       {dirs_to_keep,["logs"]},
       {application_dir,"applications"}],
      [{hostname,"c200"},
@@ -258,13 +295,13 @@ access_info_all()->
 	{ssh_port,22},
 	{uid,"joq62"},
 	{pwd,"festum01"},
-	{node,kublet@c200}]},
+	{node,host@c200}]},
       {host_type,[{type,auto_erl_controller}]},
       {start_args,
-       [{erl_cmd,"erl -detached"},
+       [{erl_cmd,"/lib/erlang/bin/erl -detached"},
 	{cookie,"cookie"},
-	{env_vars,"-kubelet mode controller"},
-	{nodename,"kublet"}]},
+	{env_vars,[{kublet,[{mode,controller}]}]},
+	{nodename,"host"}]},
       {dirs_to_keep,["logs"]},
       {application_dir,"applications"}],
      [{hostname,"c202"},
@@ -274,12 +311,12 @@ access_info_all()->
 	{ssh_port,22},
 	{uid,"joq62"},
 	{pwd,"festum01"},
-	{node,kublet@c202}]},
+	{node,host@c202}]},
       {host_type,[{type,auto_erl_controller}]},
       {start_args,
-       [{erl_cmd,"erl -detached"},
+       [{erl_cmd,"/lib/erlang/bin/erl -detached"},
 	{cookie,"cookie"},
-	{env_vars,"-kubelet mode controller"},
-	{nodename,"kublet"}]},
+	{env_vars,[{kublet,[{mode,controller}]}]},
+	{nodename,"host"}]},
       {dirs_to_keep,["logs"]},
       {application_dir,"applications"}]].

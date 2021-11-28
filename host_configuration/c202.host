@@ -9,7 +9,7 @@
 	      {ssh_port,22},
 	      {uid,"joq62"},
 	      {pwd,"festum01"},
-	      {node,'kublet@c202'}
+	      {node,'host@c202'}
 	     ]
 }.
 	      
@@ -19,10 +19,10 @@
 }.
 
 %% ---------------------- erlang start info -----------------------
-{start_args,[{erl_cmd,"erl -detached"},
+{start_args,[{erl_cmd,"/lib/erlang/bin/erl -detached"},
              {cookie,"cookie"},
-	     {env_vars,"-kubelet mode controller"},
-	     {nodename,"kublet"}
+	     {env_vars,[{kublet,[{mode,controller}]}]},
+	     {nodename,"host"}
 	    ]
 }.
 
