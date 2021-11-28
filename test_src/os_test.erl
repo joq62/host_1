@@ -32,8 +32,12 @@ start()->
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   io:format("~p~n",[{"Start os_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=os_start(),
-    io:format("~p~n",[{"Stop os_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    ok=os_start(),
+ %   io:format("~p~n",[{"Stop os_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
+ %   io:format("~p~n",[{"Start desired_state()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=desired_state(),
+    io:format("~p~n",[{"Stop desired_state()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   io:format("~p~n",[{"Start os_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=os_stop(),
@@ -52,6 +56,20 @@ start()->
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+
+desired_state()->
+    X=host_desired_state:start(),
+    io:format("X = ~p~n",[X]),
+    timer:sleep(5000),
+    io:format("node_started  = ~p~n",[lib_status:node_started()]),
+    io:format("node_stopped  = ~p~n",[lib_status:node_stopped()]),
+    ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc

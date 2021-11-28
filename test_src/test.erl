@@ -32,16 +32,16 @@ start()->
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
   %  io:format("~p~n",[{"Start config()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=config(),
-    io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  ok=config(),
+  %  io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %  io:format("~p~n",[{"Start os()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=os(),
-    io:format("~p~n",[{"Stop os()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=os(),
+ %   io:format("~p~n",[{"Stop os()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-  %  io:format("~p~n",[{"Start pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=pass_0(),
-  %  io:format("~p~n",[{"Stop pass_0()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  io:format("~p~n",[{"Start monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=monkey(),
+    io:format("~p~n",[{"Stop monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   
       %% End application tests
@@ -53,6 +53,15 @@ start()->
     ok.
 
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+monkey()->
+    ok=rpc:call(node(),monkey_test,start,[],60*60*1000),
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 

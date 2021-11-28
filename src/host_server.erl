@@ -17,11 +17,11 @@
 % -include("").
 %% --------------------------------------------------------------------
 
--define(ScheduleInterval,1*10*1000).
+-define(ScheduleInterval,1*30*1000).
 
 %% External exports
 -export([
-	 schedule/0
+	 desired_state/0
 	]).
 
 
@@ -35,8 +35,8 @@
 %% ====================================================================
 
 
-schedule()->
-    gen_server:cast(?MODULE, {schedule}).
+desired_state()->
+    gen_server:cast(?MODULE, {desired_state}).
 
 %% ====================================================================
 %% Server functions
@@ -52,7 +52,7 @@ schedule()->
 %% --------------------------------------------------------------------
 init([]) ->
    
-%    spawn(fun()->do_schedule() end),
+    spawn(fun()->do_desired_state() end),
     
     {ok, #state{}
     }.
@@ -97,8 +97,8 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
-handle_cast({schedule}, State) ->
-     spawn(fun()->do_schedule() end),
+handle_cast({desired_state}, State) ->
+     spawn(fun()->do_desired_state() end),
     {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -134,10 +134,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-do_schedule()->
-    io:format("do_schedule start~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,time()}]),
+do_desired_state()->
+    io:format("~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,time()}]),
     timer:sleep(?ScheduleInterval),
-    Result=rpc:call(node(),scheduler,start,[],10*1000),
+    Result=rpc:call(node(),host_desired_state,start,[],25*1000),
     io:format("~p~n",[{Result,?MODULE,?FUNCTION_NAME,?LINE,time()}]),
-    rpc:cast(node(),?MODULE,schedule,[]).
+    rpc:cast(node(),?MODULE,desired_state,[]).
 		  
