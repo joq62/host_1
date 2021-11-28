@@ -2,7 +2,7 @@
 %% Host Information 
 %
 %%------------------------ applications to init start ----------------------
-
+{hostname,"c203"}.
 %% -----------------------host access information  --------------------------------
 {access_info,[{hostname,"c203"},
               {ip,"192.168.0.203"},

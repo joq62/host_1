@@ -27,8 +27,13 @@
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-start(Host)->
-   
+start(HostName)->
+    [{hostname,_HostName}, 
+     {ip,Ip},
+     {ssh_port,SshPort},
+     {uid,Uid},
+     {pwd,Pwd},
+     {node,_KubletNode}]=host_config:access_info(HostName),
     
     AllAccessInfo=host_config:access_info(),
     ok.
