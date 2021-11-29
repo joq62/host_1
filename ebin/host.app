@@ -8,5 +8,6 @@
 {registered,[host]},
 {applications, [kernel,stdlib]},
 {mod, {host_app,[]}},
-{start_phases, []}
+{start_phases, []},
+{git_path,"https://github.com/joq62/host.git"}
 ]}.

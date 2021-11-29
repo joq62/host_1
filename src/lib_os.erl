@@ -38,6 +38,7 @@ restart(HostName)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+-define(ApplicationDir,"applications").
 start(HostName)->
     Ip=host_config:ip(HostName),
     Port=host_config:ssh_port(HostName),
@@ -60,6 +61,10 @@ start(HostName)->
 		   {error,[false,HostName,HostNode]};
 	       true->
 		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
+		   rpc:call(HostNode,os,cmd,["rm -rf "++?ApplicationDir],2000),
+		   timer:sleep(1000),
+		   ok=rpc:call(HostNode,file,make_dir,[?ApplicationDir],2000),
+		   timer:sleep(1000),
 		   {R,[HostName,HostNode]}
 	   end,
     Result.
