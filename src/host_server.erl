@@ -135,9 +135,15 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %% --------------------------------------------------------------------
 do_desired_state()->
-    io:format("~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,time()}]),
+%    io:format("~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,time()}]),
     timer:sleep(?ScheduleInterval),
-    Result=rpc:call(node(),host_desired_state,start,[],25*1000),
+    Result=case bully:am_i_leader(node()) of
+	       false->
+		   act_follower;
+	       true->
+		   rpc:call(node(),host_desired_state,start,[],25*1000)
+	   end,
+    
     io:format("~p~n",[{Result,?MODULE,?FUNCTION_NAME,?LINE,time()}]),
     rpc:cast(node(),?MODULE,desired_state,[]).
 		  

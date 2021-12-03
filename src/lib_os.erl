@@ -21,12 +21,12 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
-restart(HostName)->
-    Ip=host_config:ip(HostName),
-    Port=host_config:ssh_port(HostName),
-    Uid=host_config:uid(HostName),
-    Pwd=host_config:passwd(HostName),
-    HostNode=host_config:node(HostName),
+restart(Id)->
+    Ip=db_host:ip(Id),
+    Port=db_host:ssh_port(Id),
+    Uid=db_host:uid(Id),
+    Pwd=db_host:passwd(Id),
+    HostNode=db_host:node(Id),
     rpc:cast(HostNode,init,stop,[]),
     ssh:start(), 
     Cmd="shutdown -r",
@@ -39,17 +39,17 @@ restart(HostName)->
 %% Returns: non
 %% --------------------------------------------------------------------
 -define(ApplicationDir,"applications").
-start(HostName)->
-    Ip=host_config:ip(HostName),
-    Port=host_config:ssh_port(HostName),
-    Uid=host_config:uid(HostName),
-    Pwd=host_config:passwd(HostName),
-    HostNode=host_config:node(HostName),
+start(Id)->
+    Ip=db_host:ip(Id),
+    Port=db_host:port(Id),
+    Uid=db_host:uid(Id),
+    Pwd=db_host:passwd(Id),
+    HostNode=db_host:node(Id),
     
-    Erl=host_config:erl_cmd(HostName),
-    EnvVars=host_config:env_vars(HostName),
-    NodeName=host_config:nodename(HostName),
-    Cookie=host_config:cookie(HostName),
+    Erl=db_host:erl_cmd(Id),
+    EnvVars=db_host:env_vars(Id),
+    NodeName=db_host:nodename(Id),
+    Cookie=db_host:cookie(Id),
     
    % ErlCmd=Erl++" "++"-sname "++NodeName++" "++EnvVars++" "++"-setcookie "++Cookie,
     ssh:start(), 
@@ -58,14 +58,14 @@ start(HostName)->
    % io:format("Result = ~p~n",[Result]),
     Result=case node_started(HostNode) of
 	       false->
-		   {error,[false,HostName,HostNode]};
+		   {error,[false,Id,HostNode]};
 	       true->
 		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
 		   rpc:call(HostNode,os,cmd,["rm -rf "++?ApplicationDir],2000),
 		   timer:sleep(1000),
 		   ok=rpc:call(HostNode,file,make_dir,[?ApplicationDir],2000),
 		   timer:sleep(1000),
-		   {R,[HostName,HostNode]}
+		   {R,[Id,HostNode]}
 	   end,
     Result.
 
