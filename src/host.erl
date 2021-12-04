@@ -21,6 +21,10 @@
 	 stopped/0,
 	 started/0,
 	 desired_state/1,
+	 host_status/0,
+	 host_status/1,
+	 node_status/0,
+	 node_status/1,
 	 ping/0
         ]).
 
@@ -64,7 +68,14 @@ stopped()->
     gen_server:call(?SERVER, {stopped},infinity).
 desired_state(Pid)-> 
     gen_server:cast(?SERVER, {desired_state,Pid}).
-
+host_status()->
+     gen_server:call(?SERVER, {host_status},infinity).
+host_status(Id)->
+     gen_server:call(?SERVER, {host_status,Id},infinity).
+node_status()->
+     gen_server:call(?SERVER, {node_status},infinity).
+node_status(Id)->
+     gen_server:call(?SERVER, {node_status,Id},infinity).
 
 
 %%----------------------------------------------------------------------

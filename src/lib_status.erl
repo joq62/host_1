@@ -51,7 +51,6 @@ node_stopped()->
 
 node_check()->
     AllIds=lists:sort(db_host:ids()),
-    
     CheckResult=[{Id,net_adm:ping(db_host:node(Id))}||Id<-AllIds],
     Started=[Id||{Id,pong}<-CheckResult],
     Stopped=[Id||{Id,pang}<-CheckResult],
@@ -71,21 +70,23 @@ os_stopped(Id)->
 
 os_started()->
     {ok,Started,_Stopped}=start(),
-    [Id||{started,Id,_Ip,_Port}<-Started].
+    [Id||{host_started,Id,_Ip,_Port}<-Started].
 os_stopped()->
     {ok,_Started,Stopped}=start(),
-    [Id||{stopped,Id,_Ip,_Port}<-Stopped].
+    [Id||{host_stopped,Id,_Ip,_Port}<-Stopped].
 
 start()->
     F1=fun get_hostname/2,
     F2=fun check_host_status/3,
     ssh:start(),
     AllIds=lists:sort(db_host:ids()),
-%    io:format("AllHosts = ~p~n",[{?MODULE,?LINE,AllHosts}]),
+  %  io:format("AllIds = ~p~n",[{?MODULE,?LINE,AllIds}]),
+  %  timer:sleep(5000),
     Status=mapreduce:start(F1,F2,[],AllIds),
 %    io:format("Status = ~p~n",[{?MODULE,?LINE,Status}]),
-    Started=[{started,HostId,Ip,Port}||{running,HostId,Ip,Port}<-Status],
-    Stopped=[{stopped,HostId,Ip,Port}||{missing,HostId,Ip,Port}<-Status],
+    Started=[{host_started,Id,Ip,Port}||{running,Id,Ip,Port}<-Status],
+    Stopped=[{host_stopped,Id,Ip,Port}||{missing,Id,Ip,Port}<-Status],
+    [db_host:update_status(Id,host_stopped)||{_,Id,_,_}<-Stopped],
     {ok,Started,Stopped}.
 
 get_hostname(Parent,Id)->   
@@ -113,6 +114,13 @@ check_host_status([],Status)->
     Status;
 check_host_status([{Id,IpAddr,Port,ok}|T],Acc)->
     NewAcc=[{running,Id,IpAddr,Port}|Acc],
+    case net_adm:ping(db_host:node(Id)) of
+	pong->
+	    {atomic,ok}=db_host:update_status(Id,node_started);
+	pang->
+	     {atomic,ok}=db_host:update_status(Id,host_started)
+    end,    
+    timer:sleep(1000),
     check_host_status(T,NewAcc);
 check_host_status([{Id,IpAddr,Port,{error,_Err}}|T],Acc) ->
     check_host_status(T,[{missing,Id,IpAddr,Port}|Acc]);

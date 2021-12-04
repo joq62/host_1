@@ -63,6 +63,19 @@ init([]) ->
 %%          {stop, Reason, Reply, State}   | (terminate/2 is called)
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
+handle_call({host_status},_From, State) ->
+    Reply=db_host:status(),
+    {reply, Reply, State};
+handle_call({host_status,Id},_From, State) ->
+    Reply=db_host:status(Id),
+    {reply, Reply, State};
+handle_call({node_status},_From, State) ->
+    Reply=glurk,
+    {reply, Reply, State};
+handle_call({node_status,Id},_From, State) ->
+    Reply=glurk,
+    {reply, Reply, State};
+
 handle_call({started},_From, State) ->
     Reply=ok,
     {reply, Reply, State};

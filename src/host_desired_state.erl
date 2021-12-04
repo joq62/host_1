@@ -2,7 +2,7 @@
 %%% Author  : uabjle
 %%% Description : dbase using dets 
 %%% 
-%%% Created : 10 dec 2012
+%%% Created : 10 dec 20121
 %%% -------------------------------------------------------------------
 -module(host_desired_state).  
     
@@ -22,11 +22,12 @@
 %% External functions
 %% ====================================================================
 start()->
-    StartedHosts=lib_status:os_started(),
-   % io:format("StartedHosts = ~p~n",[[{?MODULE,?FUNCTION_NAME,?LINE,StartedHosts}]]),
+    {ok,StartedHosts,StoppedHosts}=lib_status:start(),
+  %  io:format("StartedHosts = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,StartedHosts,StoppedHosts}]]),
     NodesToStart=[Id||Id<-StartedHosts,
 		 true=:=lib_status:node_stopped(Id)],
     StartedNodesId=[lib_os:start(Id)||Id<-NodesToStart],
+  %  io:format("StartedNodesId = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,StartedNodesId}]]),
     case StartedNodesId of
 	[]->
 	    ok;
