@@ -31,6 +31,7 @@ restart(Id)->
     ssh:start(), 
     Cmd="shutdown -r",
     _Result=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,Cmd, 5*1000],4*1000), 
+    db_host:update_status(Id,stopped), 
    
     ok.
 %% --------------------------------------------------------------------
@@ -38,7 +39,6 @@ restart(Id)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
--define(ApplicationDir,"applications").
 start(Id)->
     Ip=db_host:ip(Id),
     Port=db_host:port(Id),
@@ -50,23 +50,26 @@ start(Id)->
     EnvVars=db_host:env_vars(Id),
     NodeName=db_host:nodename(Id),
     Cookie=db_host:cookie(Id),
-    
+    ApplicationDir=db_host:application_dir(Id),
    % ErlCmd=Erl++" "++"-sname "++NodeName++" "++EnvVars++" "++"-setcookie "++Cookie,
     ssh:start(), 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
-    _Result=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd, 5*1000],4*1000), 
-   % io:format("Result = ~p~n",[Result]),
+    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd, 5*1000],4*1000), 
+ %   io:format("SshResult = ~p~n",[{SshResult,?MODULE,?FUNCTION_NAME,?LINE}]),
     Result=case node_started(HostNode) of
 	       false->
+		   db_host:update_status(Id,host_started),
 		   {error,[false,Id,HostNode]};
 	       true->
 		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
-		   rpc:call(HostNode,os,cmd,["rm -rf "++?ApplicationDir],2000),
+		   rpc:call(HostNode,os,cmd,["rm -rf "++ApplicationDir],2000),
 		   timer:sleep(1000),
-		   ok=rpc:call(HostNode,file,make_dir,[?ApplicationDir],2000),
+		   ok=rpc:call(HostNode,file,make_dir,[ApplicationDir],2000),
 		   timer:sleep(1000),
+		   db_host:update_status(Id,node_started),
 		   {R,[Id,HostNode]}
 	   end,
+ %    io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
     Result.
 
 

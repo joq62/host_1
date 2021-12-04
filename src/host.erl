@@ -20,7 +20,7 @@
 -export([
 	 stopped/0,
 	 started/0,
-	 
+	 desired_state/1,
 	 ping/0
         ]).
 
@@ -62,6 +62,8 @@ started()->
     gen_server:call(?SERVER, {started},infinity).
 stopped()-> 
     gen_server:call(?SERVER, {stopped},infinity).
+desired_state(Pid)-> 
+    gen_server:cast(?SERVER, {desired_state,Pid}).
 
 
 
