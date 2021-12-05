@@ -23,7 +23,7 @@
 %% ====================================================================
 restart(Id)->
     Ip=db_host:ip(Id),
-    Port=db_host:ssh_port(Id),
+    Port=db_host:port(Id),
     Uid=db_host:uid(Id),
     Pwd=db_host:passwd(Id),
     HostNode=db_host:node(Id),
@@ -53,10 +53,14 @@ start(Id)->
     NodeName=db_host:nodename(Id),
     Cookie=db_host:cookie(Id),
     ApplicationDir=db_host:application_dir(Id),
+
    % ErlCmd=Erl++" "++"-sname "++NodeName++" "++EnvVars++" "++"-setcookie "++Cookie,
     ssh:start(), 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
-    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd, 5*1000],4*1000), 
+    
+   % ErlCmd="erl_call -s "++"-sname "++NodeName++" "++"-c "++Cookie,
+    SshCmd="nohup "++ErlCmd++" &",
+    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshCmd, 5*1000],4*1000), 
     io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
