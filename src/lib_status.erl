@@ -51,9 +51,12 @@ node_stopped()->
 
 node_check()->
     AllIds=lists:sort(db_host:ids()),
+  %  io:format("AllIds = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,AllIds}]]),
     CheckResult=[{Id,net_adm:ping(db_host:node(Id))}||Id<-AllIds],
+%    io:format("CheckResult = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,CheckResult}]]),
     Started=[Id||{Id,pong}<-CheckResult],
     Stopped=[Id||{Id,pang}<-CheckResult],
+  %  io:format("Stopped = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,Stopped}]]),
     {ok,Started,Stopped}.
 
 %% -------------------------------------------------------------------

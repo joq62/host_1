@@ -40,6 +40,8 @@ restart(Id)->
 %% Returns: non
 %% --------------------------------------------------------------------
 start(Id)->
+    io:format("node = ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]),
+    
     Ip=db_host:ip(Id),
     Port=db_host:port(Id),
     Uid=db_host:uid(Id),
@@ -55,7 +57,7 @@ start(Id)->
     ssh:start(), 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
     SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,ErlCmd, 5*1000],4*1000), 
- %   io:format("SshResult = ~p~n",[{SshResult,?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
 		   db_host:update_status(Id,host_started),
@@ -64,7 +66,9 @@ start(Id)->
 		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
 		   rpc:call(HostNode,os,cmd,["rm -rf "++ApplicationDir],2000),
 		   timer:sleep(1000),
-		   ok=rpc:call(HostNode,file,make_dir,[ApplicationDir],2000),
+		   io:format("ApplicationDir = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,ApplicationDir}]),
+		   X=rpc:call(HostNode,file,make_dir,[ApplicationDir],2000),
+		   io:format("make dir result = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,X}]),
 		   timer:sleep(1000),
 		   db_host:update_status(Id,node_started),
 		   {R,[Id,HostNode]}
