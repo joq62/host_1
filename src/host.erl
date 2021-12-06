@@ -18,6 +18,7 @@
 -define(SERVER,host_server).
 %% --------------------------------------------------------------------
 -export([
+	 started_nodes/0,
 	 stopped/0,
 	 started/0,
 	 desired_state/1,
@@ -61,6 +62,9 @@ stop()-> gen_server:call(?SERVER, {stop},infinity).
 ping()-> 
     gen_server:call(?SERVER, {ping},infinity).
 
+
+started_nodes()-> 
+    gen_server:call(?SERVER, {started_nodes},infinity).
 
 started()-> 
     gen_server:call(?SERVER, {started},infinity).
