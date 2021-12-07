@@ -21,17 +21,17 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
-restart(Id)->
-    Ip=db_host:ip(Id),
-    Port=db_host:port(Id),
-    Uid=db_host:uid(Id),
-    Pwd=db_host:passwd(Id),
-    HostNode=db_host:node(Id),
+restart_host_node(HostId)->
+    Ip=db_host:ip(HostId),
+    Port=db_host:port(HostId),
+    Uid=db_host:uid(HostId),
+    Pwd=db_host:passwd(HostId),
+    HostNode=db_host:node(HostId),
     rpc:cast(HostNode,init,stop,[]),
     ssh:start(), 
     Cmd="shutdown -r",
     _Result=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,Cmd, 5*1000],4*1000), 
-    db_host:update_status(Id,stopped), 
+    db_host:update_status(HostId,stopped), 
    
     ok.
 %% --------------------------------------------------------------------
@@ -39,20 +39,19 @@ restart(Id)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-start(Id)->
+start_host_node(HostId)->
     io:format("node = ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]),
+    Ip=db_host:ip(HostId),
+    Port=db_host:port(HostId),
+    Uid=db_host:uid(HostId),
+    Pwd=db_host:passwd(HostId),
+    HostNode=db_host:node(HostId),
     
-    Ip=db_host:ip(Id),
-    Port=db_host:port(Id),
-    Uid=db_host:uid(Id),
-    Pwd=db_host:passwd(Id),
-    HostNode=db_host:node(Id),
-    
-    Erl=db_host:erl_cmd(Id),
-    EnvVars=db_host:env_vars(Id),
-    NodeName=db_host:nodename(Id),
-    Cookie=db_host:cookie(Id),
-    ApplicationDir=db_host:application_dir(Id),
+    Erl=db_host:erl_cmd(HostId),
+    EnvVars=db_host:env_vars(HostId),
+    NodeName=db_host:nodename(HostId),
+    Cookie=db_host:cookie(HostId),
+    ApplicationDir=db_host:application_dir(HostId),
 
    % ErlCmd=Erl++" "++"-sname "++NodeName++" "++EnvVars++" "++"-setcookie "++Cookie,
     ssh:start(), 
@@ -61,11 +60,11 @@ start(Id)->
    % ErlCmd="erl_call -s "++"-sname "++NodeName++" "++"-c "++Cookie,
     SshCmd="nohup "++ErlCmd++" &",
     SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshCmd, 5*1000],4*1000), 
-    io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
+   % io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
-		   db_host:update_status(Id,host_started),
-		   {error,[false,Id,HostNode]};
+		   db_host:update_status(HostId,host_started),
+		   {error,[false,HostId,HostNode]};
 	       true->
 		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
 		   rpc:call(HostNode,os,cmd,["rm -rf "++ApplicationDir],2000),
@@ -74,8 +73,8 @@ start(Id)->
 		   X=rpc:call(HostNode,file,make_dir,[ApplicationDir],2000),
 		   io:format("make dir result = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,X}]),
 		   timer:sleep(1000),
-		   db_host:update_status(Id,node_started),
-		   {R,[Id,HostNode]}
+		   db_host:update_status(HostId,node_started),
+		   {R,[HostId,HostNode]}
 	   end,
  %    io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
     Result.
@@ -86,7 +85,27 @@ start(Id)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+start_slave(HostId,NodeName)->
+    {Host,_}=HostId,
+    HostNode=db_host:node(HostId),
+    Cookie=db_host:cookie(HostId),
+    ApplicationDir=db_host:application_dir(HostId),
+    PodDir=filename:join(ApplicationDir,NodeName),
+    Args="-setcookie "++Cookie,
+    start_slave(HostNode,Host,NodeName,Args,PodDir).
 
+start_slave(Node,Host,NodeName,Args,PodDir)->
+    rpc:call(Node,os,cmd,["rm -rf "++PodDir],5*1000),
+    timer:sleep(1000),
+    ok=rpc:call(Node,file,make_dir,[PodDir],5*1000),
+    {ok,Slave}=rpc:call(Node,slave,start,[Host,NodeName,Args],5*1000),
+    {ok,Slave}.
+    
+    
+    
+
+
+    
 
 
 %% --------------------------------------------------------------------
