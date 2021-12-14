@@ -31,16 +31,16 @@ start()->
     ok=setup(),
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
-  %  io:format("~p~n",[{"Start config()",?MODULE,?FUNCTION_NAME,?LINE}]),
-  %  ok=config(),
+  %  io:format("~p~n",[{"Start config_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=config_test:start(),
   %  io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %  io:format("~p~n",[{"Start os()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=os(),
+ %  io:format("~p~n",[{"Start os_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=os_test:start(),
  %   io:format("~p~n",[{"Stop os()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
   %  io:format("~p~n",[{"Start monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=monkey(),
+  %  ok=monkey(),
     io:format("~p~n",[{"Stop monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   

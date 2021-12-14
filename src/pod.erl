@@ -4,7 +4,7 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(lib_os).  
+-module(pod).  
    
 %% --------------------------------------------------------------------
 %% Include files
@@ -39,7 +39,7 @@ restart_host_node(HostId)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-start_host_node(HostId)->
+start(HostId)->
     io:format("node = ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]),
     Ip=db_host:ip(HostId),
     Port=db_host:port(HostId),
@@ -48,11 +48,12 @@ start_host_node(HostId)->
     HostNode=db_host:node(HostId),
     
     Erl=db_host:erl_cmd(HostId),
-  %  EnvVars=db_host:env_vars(HostId),
+    EnvVars=db_host:env_vars(HostId),
     NodeName=db_host:nodename(HostId),
     Cookie=db_host:cookie(HostId),
     io:format("Cookie = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,Cookie}]),
-   
+    ApplicationDir=db_host:application_dir(HostId),
+
    % ErlCmd=Erl++" "++"-sname "++NodeName++" "++EnvVars++" "++"-setcookie "++Cookie,
     ssh:start(), 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
@@ -66,11 +67,46 @@ start_host_node(HostId)->
 		   db_host:update_status(HostId,host_started),
 		   {error,[false,HostId,HostNode]};
 	       true->
+		   R=rpc:call(HostNode,application,set_env,[EnvVars],5*1000),
+		   rpc:call(HostNode,os,cmd,["rm -rf "++ApplicationDir],2000),
+		   timer:sleep(1000),
+%		   io:format("ApplicationDir = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,ApplicationDir}]),
+		   X=rpc:call(HostNode,file,make_dir,[ApplicationDir],2000),
+%		   io:format("make dir result = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,X}]),
+		   timer:sleep(1000),
 		   db_host:update_status(HostId,node_started),
-		   {ok,[HostId,HostNode]}
+		   {R,[HostId,HostNode]}
 	   end,
  %    io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
     Result.
+
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+start_slave(HostId,NodeName)->
+    {Host,_}=HostId,
+    HostNode=db_host:node(HostId),
+    Cookie=db_host:cookie(HostId),
+    ApplicationDir=db_host:application_dir(HostId),
+    PodDir=filename:join(ApplicationDir,NodeName),
+    Args="-setcookie "++Cookie,
+    start_slave(HostNode,Host,NodeName,Args,PodDir).
+
+start_slave(Node,Host,NodeName,Args,PodDir)->
+    rpc:call(Node,os,cmd,["rm -rf "++PodDir],5*1000),
+    timer:sleep(1000),
+    ok=rpc:call(Node,file,make_dir,[PodDir],5*1000),
+    {ok,Slave}=rpc:call(Node,slave,start,[Host,NodeName,Args],5*1000),
+    {ok,Slave,PodDir}.
+    
+    
+    
+
+
+    
 
 
 %% --------------------------------------------------------------------

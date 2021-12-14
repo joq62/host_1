@@ -23,11 +23,11 @@
 %% ====================================================================
 start()->
     {ok,StartedHosts,StoppedHosts}=lib_status:start(),
-    io:format("StartedHosts = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,StartedHosts}]]),
+%    io:format("StartedHosts = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,StartedHosts}]]),
 
     NodesToStart=[Id||{host_started,Id,_Ip,_Port}<-StartedHosts,
 		 true=:=lib_status:node_stopped(Id)],
-    io:format("NodesToStart = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,NodesToStart}]]),
+  %  io:format("NodesToStart = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,NodesToStart}]]),
     StartedNodesId=[lib_os:start_host_node(Id)||Id<-NodesToStart],
   %  io:format("StartedNodesId = ~p~n",[[{node(),?MODULE,?FUNCTION_NAME,?LINE,StartedNodesId}]]),
     case StartedNodesId of
