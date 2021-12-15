@@ -35,9 +35,9 @@ start()->
     ok=config_test:start(),
   %  io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %  io:format("~p~n",[{"Start os_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
- %   ok=os_test:start(),
- %   io:format("~p~n",[{"Stop os()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %  io:format("~p~n",[{"Start pod_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=pod_test:start(),
+    io:format("~p~n",[{"Stop pod_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
   %  io:format("~p~n",[{"Start monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
   %  ok=monkey(),

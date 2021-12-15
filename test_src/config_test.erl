@@ -41,16 +41,16 @@ start()->
     io:format("~p~n",[{"Stop detailed()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   io:format("~p~n",[{"Start os_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=os_status(),
-    io:format("~p~n",[{"Stop os_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    ok=os_status(),
+%    io:format("~p~n",[{"Stop os_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   io:format("~p~n",[{"Start node_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=node_status(),
-    io:format("~p~n",[{"Stop node_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    ok=node_status(),
+%    io:format("~p~n",[{"Stop node_status()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %   io:format("~p~n",[{"Start start_args()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=start_args(),
-    io:format("~p~n",[{"Stop start_args()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    ok=start_args(),
+%    io:format("~p~n",[{"Stop start_args()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
 %   io:format("~p~n",[{"Start start_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
  %   ok=start_stop(),
@@ -85,15 +85,17 @@ start()->
 detailed()->
     
     "192.168.0.100"=db_host:ip({"c100","host2"}),
-    22=db_host:ssh_port({"c100","host2"}),
+    22=db_host:port({"c100","host2"}),
     "joq62"=db_host:uid({"c100","host2"}),
     "festum01"=db_host:passwd({"c100","host2"}),
     host2@c100=db_host:node({"c100","host2"}),
 
     "erl -detached"=db_host:erl_cmd({"c100","host2"}),
-    [{kublet,[{mode,controller}]}]=db_host:env_vars({"c100","host2"}),
-    "host"=db_host:nodename({"c100","host2"}),
-    "cookie"=db_host:cookie({"c100","host2"}),
+    [{kublet,[{mode,controller}]},
+    {dbase_infra,[{nodes,[host1@c100,host3@c100,host4@c100]}]},
+    {bully,[{nodes,[host1@c100,host3@c100,host4@c100]}]}]=db_host:env_vars({"c100","host2"}),
+    "host2"=db_host:nodename({"c100","host2"}),
+    "cookie_test"=db_host:cookie({"c100","host2"}),
     
     ok.
 

@@ -1,7 +1,7 @@
 all:
 #	service
 	rm -rf ebin/* src/*.beam *.beam test_src/*.beam test_ebin;
-	rm -rf *.applications ~/*.applications *.pod *configurations;
+	rm -rf *.pod *.applications ~/*.applications *.pod *configurations;
 	rm -rf  *~ */*~  erl_cra*;
 #	common
 #	cp ../common/src/*.app ebin;
@@ -12,7 +12,7 @@ all:
 	echo Done
 unit_test:
 	rm -rf ebin/* src/*.beam *.beam test_src/*.beam test_ebin;
-	rm -rf *.applications ~/*.applications *configurations;
+	rm -rf *.pod *.applications ~/*.applications *configurations;
 	rm -rf  *~ */*~  erl_cra*;
 	mkdir test_ebin;
 #	common

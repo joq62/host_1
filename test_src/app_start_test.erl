@@ -15,7 +15,8 @@
 %% External exports
 -export([start/0]).
 
--define(PodDir,"test.pod").
+%-define(PodDir,"test.pod").
+-define(PodDir,".").
 
 %% ====================================================================
 %% External functions
