@@ -10,6 +10,7 @@
 %% Include files
 %% --------------------------------------------------------------------
 -include_lib("eunit/include/eunit.hrl").
+-include("controller.hrl").
 %% --------------------------------------------------------------------
 
 %% External exports
@@ -65,23 +66,23 @@ start_slave(NodeName)->
     {ok,Node}=slave:start(HostId,NodeName,Args).
 
 setup()->
-    Nodes=get_nodes(),
-   % gl=Nodes,
-    [rpc:call(Node,init,stop,[],100)||Node<-Nodes],
-  %  timer:sleep(2000),
-    [{ok,host1@c100},
-     {ok,host2@c100},
-     {ok,host3@c100},
-     {ok,host4@c100}]=[start_slave(NodeName)||NodeName<-["host1","host2","host3","host4"]],
-   % [{ok,host1@c100}]= [start_slave(NodeName)||NodeName<-["host1"]],
-
-
     %load configas
     os:cmd("mkdir "++?PodDir),
     ok=lib_controller:load_configs(?PodDir),
     ok=application:start(dbase_infra),
-    ok=lib_controller:initiate_dbase(?PodDir),
-    
+    ok=lib_controller:initiate_dbase(?PodDir),    
+
+    [host1@c100,host2@c100,host3@c100]=connect:get(?ControllerNodes),
+    Ids=lists:sort(db_host:ids()),
+    Ids=[{"c100","host1"},
+	 {"c100","host2"},
+	 {"c100","host3"},
+	 {"c100","host4"}],
+
+    Nodes=[db_host:node(Id)||Id<-Ids],
+    [host1@c100,host2@c100,host3@c100,host4@c100]=Nodes,
+    [rpc:call(Node,init,stop,[],100)||Node<-Nodes],
+    timer:sleep(1000),
     ok.
 
 

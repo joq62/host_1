@@ -31,6 +31,10 @@ start()->
     ok=setup(),
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+ %   io:format("~p~n",[{"Start init1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=init1(),
+    io:format("~p~n",[{"Stop init1()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
  %   io:format("~p~n",[{"Start pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=pass1(),
     io:format("~p~n",[{"Stop pass1()",?MODULE,?FUNCTION_NAME,?LINE}]),
@@ -51,6 +55,66 @@ start()->
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+init1()->
+    AllIds=lists:sort(db_host:ids()),
+    Ids=[{"c100","host1"},
+	 {"c100","host2"},
+	 {"c100","host3"},
+	 {"c100","host4"}],
+    
+    ControllerIds=[Id||Id<-Ids,
+		      auto_erl_controller=:=db_host:type(Id)],
+    [{"c100","host1"},
+    {"c100","host2"},
+    {"c100","host3"}]=ControllerIds,
+    
+    % Start host node
+    [ControllerHost1|_]=ControllerIds,
+    SshResult=pod:ssh_start(ControllerHost1),
+    {ok,[ControllerHost1,Node1]}=SshResult,
+    pong=net_adm:ping(Node1),
+    io:format("SshResult ~p~n",[{SshResult,?MODULE,?FUNCTION_NAME,?LINE}]),
+ 
+    % start pod for Controller
+    {ok,HostName1}=net:gethostname(),
+    NodeName1=integer_to_list(erlang:system_time(microsecond)),
+    PodDir1=NodeName1++".pod",
+    Args1="-setcookie "++atom_to_list(erlang:get_cookie()),
+    rpc:call(Node1,os,cmd,["rm -rf *.pod"],5*1000),
+    {ok,Pod1,PodDir1}=pod:start_slave(Node1,HostName1,NodeName1,Args1,PodDir1), 
+    pong=net_adm:ping(Pod1),
+
+    
+    % Load and start myadd
+  %  ControllerAppId={controller,"0.1.0"},
+    MyAddAppId={myadd,"1.0.0"},
+    MyAddAppInfo=db_service_catalog:read(MyAddAppId),
+%    io:format("AppInfo ~p~n",[{AppInfo,?MODULE,?FUNCTION_NAME,?LINE}]),   
+    ok=pod:load_app(Pod1,PodDir1,MyAddAppInfo),
+    {MyApp,_Vsn}=MyAddAppId,
+    ok=pod:start_app(Pod1,MyApp,[]),
+    42=rpc:call(Pod1,MyApp,add,[20,22],2*1000),
+
+    % stop and unload
+    ok=pod:stop_app(Pod1,MyApp),
+    AppDir1=filename:join(PodDir1,atom_to_list(MyApp)),
+    ok=pod:unload_app(Pod1,MyApp,AppDir1),
+    {badrpc,_}=rpc:call(Pod1,MyApp,add,[20,22],2*1000),
+
+    
+    nok.
+    
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
 
 %% --------------------------------------------------------------------
 %% Function:start/0 

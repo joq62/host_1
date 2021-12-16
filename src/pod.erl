@@ -57,7 +57,7 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
     SshCmd="nohup "++ErlCmd++" &",
     SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshCmd, 5*1000],4*1000), 
-   io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
+ %  io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
 		   db_host:update_status(HostId,host_started),
