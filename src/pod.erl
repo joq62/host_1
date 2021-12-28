@@ -17,6 +17,10 @@
 %% --------------------------------------------------------------------
 %-compile(export_all).
 -export([
+	 load_start_apps/4,
+	 start_pod/4,
+	 scoring_hosts/1,
+	 filter_hosts/2,
 	 ssh_start/1,
 	 ssh_restart/1,
 	 load_app/3,
@@ -53,10 +57,20 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
     Port=db_host:port(HostId),
     Uid=db_host:uid(HostId),
     Pwd=db_host:passwd(HostId),
+    AppDir=db_host:application_dir(HostId),
    
+    %% Added Host dir where all deployments are stored
+    Rm="rm -rf "++AppDir,
+    SshRmCmd="nohup "++Rm++" &",
+    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshRmCmd, 5*1000],4*1000), 
+
+    MkDir="mkdir "++AppDir,
+    SshMkDirCmd="nohup "++MkDir++" &",
+    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshMkDirCmd, 5*1000],4*1000), 
+
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
-    SshCmd="nohup "++ErlCmd++" &",
-    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshCmd, 5*1000],4*1000), 
+    SshErlCmd="nohup "++ErlCmd++" &",
+    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshErlCmd, 5*1000],4*1000), 
  %  io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
@@ -82,11 +96,41 @@ ssh_restart(HostId)->
     db_host:update_status(HostId,stopped), 
    
     ok.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% ------------------------------------------------------------------- 
+load_start_apps(AppIds,PodId,PodNode,PodDir)->
+    io:format("AppIds,PodId,PodNode,PodDir ~p~n",[{AppIds,PodId,PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
+    load_start_app(AppIds,PodId,PodNode,PodDir,[]).
+    
+load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
+    StartRes;
+load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
+    App=db_service_catalog:app(AppId),
+    Vsn=db_service_catalog:vsn(AppId),
+    GitPath=db_service_catalog:git_path(AppId),
+    NewAcc=case pod:load_app(PodNode,PodDir,{App,Vsn,GitPath}) of
+	       {error,Reason}->
+		   [{error,Reason}|Acc];
+	       ok->
+		   Env=[],
+		   case pod:start_app(PodNode,App,Env) of
+		       {error,Reason}->
+			   [{error,Reason}|Acc];
+		       ok->
+			   [{ok,PodId,PodNode,PodDir,App,Vsn}|Acc]
+		   end
+	   end,
+    load_start_app(T,PodId,PodNode,PodDir,NewAcc).
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+    
 
 load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
     AppDirSource=atom_to_list(Application),
@@ -123,7 +167,36 @@ stop_app(Pod,App)->
 unload_app(Pod,App,AppDir)->
     rpc:call(Pod,os,cmd,["rm -rf "++AppDir],5*1000),
     rpc:call(Pod,application,unload,[App],5*1000).
-			       
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------	       
+start_pod(PodId,HostId,DepId,DeploymentId)->
+     UniquePod=integer_to_list(erlang:system_time(millisecond)),
+    {PodName,_Vsn}=PodId,
+    HostNode=db_host:node(HostId),
+    HostName=db_host:hostname(HostId), 
+    NodeName=HostName++"_"++PodName++"_"++UniquePod,
+    AppDir=db_host:application_dir(HostId),
+    PodDir=filename:join(AppDir,NodeName++".pod"),
+ 
+    rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
+    timer:sleep(1000),
+    ok=rpc:call(HostNode,file,make_dir,[PodDir],5*1000),
+    Cookie=atom_to_list(erlang:get_cookie()),
+    Args="-setcookie "++Cookie,
+    Result=case pod:start_slave(HostNode,HostName,NodeName,Args,PodDir) of
+	       {error,Reason}->
+		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
+		   {error,Reason};
+	       {ok,PodNode,PodDir} ->
+		   {atomic,ok}=db_deploy_state:add_pod_status(DeploymentId,{PodNode,PodDir,PodId}),
+		   {ok,PodNode,PodDir} 
+	   end,
+    Result.
+
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -215,3 +288,38 @@ check_stopped(N,Vm,SleepTime,_Result)->
 	       end,
     check_stopped(N-1,Vm,SleepTime,NewResult).
 
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% ------------------------------------------------------------------- 
+
+filter_hosts([],AffinityList)->
+    AffinityList;
+filter_hosts({hosts,HostList},AffinityList)->
+    Candidates=[Id||Id<-AffinityList,
+		    lists:member(Id,HostList),
+	            pong=:=net_adm:ping(list_to_atom(db_host:node(Id)))],
+    Candidates.
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+scoring_hosts([])->
+    {error,[no_nodes_available]};
+scoring_hosts(Candidates)->
+    NodeAdded=[{Id,db_host:node(Id)}||Id<-Candidates],
+    Nodes=[Node||{_,Node}<-NodeAdded],
+    Apps=[{Node,rpc:call(Node,application,loaded_applications,[],5*1000)}||Node<-[node()|Nodes]],
+    AvailableNodes=[{Node,AppList}||{Node,AppList}<-Apps,
+				    AppList/={badrpc,nodedown}],
+     Z=[{lists:flatlength(L),Node}||{Node,L}<-AvailableNodes],
+  %  io:format("Z ~p~n",[Z]),
+    S1=lists:keysort(1,Z),
+  %  io:format("S1 ~p~n",[S1]),
+    SortedList=lists:reverse([Id||{Id,Node}<-NodeAdded,
+		 lists:keymember(Node,2,S1)]),
+    SortedList.
+    
