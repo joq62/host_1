@@ -51,7 +51,6 @@ ssh_start(HostId)->
     ssh_start(HostId,HostNode,NodeName,Cookie,Erl).
 
 ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
-    io:format("node = ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]),
     ssh:start(),
     Ip=db_host:ip(HostId),
     Port=db_host:port(HostId),
@@ -62,15 +61,15 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
     %% Added Host dir where all deployments are stored
     Rm="rm -rf "++AppDir,
     SshRmCmd="nohup "++Rm++" &",
-    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshRmCmd, 5*1000],4*1000), 
-
+    SshRmCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshRmCmd, 5*1000],4*1000), 
+   
     MkDir="mkdir "++AppDir,
     SshMkDirCmd="nohup "++MkDir++" &",
-    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshMkDirCmd, 5*1000],4*1000), 
+    SshMkDirCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshMkDirCmd, 5*1000],4*1000), 
 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
     SshErlCmd="nohup "++ErlCmd++" &",
-    SshResult=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshErlCmd, 5*1000],4*1000), 
+    SshErlCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshErlCmd, 5*1000],4*1000), 
  %  io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
@@ -80,7 +79,7 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
 		   db_host:update_status(HostId,node_started),
 		   {ok,[HostId,HostNode]}
 	   end,
- %    io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
+     io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
     Result.
 
 ssh_restart(HostId)->
@@ -121,7 +120,7 @@ load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
 		       {error,Reason}->
 			   [{error,Reason}|Acc];
 		       ok->
-			   [{ok,PodId,PodNode,PodDir,App,Vsn}|Acc]
+			   [{ok,{PodId,PodNode,PodDir,App,Vsn}}|Acc]
 		   end
 	   end,
     load_start_app(T,PodId,PodNode,PodDir,NewAcc).
