@@ -106,7 +106,13 @@ load_start_apps(AppIds,PodId,PodNode,PodDir)->
     load_start_app(AppIds,PodId,PodNode,PodDir,[]).
     
 load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
-    StartRes;
+    Res=[{error,Reason}||{error,Reason}<-StartRes],
+    case Res of
+	[]->
+	    {ok,[PodAppInfo||{ok,PodAppInfo}<-StartRes]};
+	ErrorList->
+	    {error,ErrorList}
+    end;
 load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
     App=db_service_catalog:app(AppId),
     Vsn=db_service_catalog:vsn(AppId),
@@ -172,8 +178,8 @@ unload_app(Pod,App,AppDir)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------	       
-start_pod(PodId,HostId,DepId,DeploymentId)->
-     UniquePod=integer_to_list(erlang:system_time(millisecond)),
+start_pod(PodId,HostId,DepId,DeployInstanceId)->
+    UniquePod=integer_to_list(erlang:system_time(millisecond)),
     {PodName,_Vsn}=PodId,
     HostNode=db_host:node(HostId),
     HostName=db_host:hostname(HostId), 
@@ -191,7 +197,7 @@ start_pod(PodId,HostId,DepId,DeploymentId)->
 		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
 		   {error,Reason};
 	       {ok,PodNode,PodDir} ->
-		   {atomic,ok}=db_deploy_state:add_pod_status(DeploymentId,{PodNode,PodDir,PodId}),
+		   {atomic,ok}=db_deploy_state:add_pod_status(DeployInstanceId,{PodNode,PodDir,PodId}),
 		   {ok,PodNode,PodDir} 
 	   end,
     Result.
