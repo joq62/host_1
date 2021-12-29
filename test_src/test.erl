@@ -31,17 +31,21 @@ start()->
     ok=setup(),
   %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
+%  io:format("~p~n",[{"Start init_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=init_test:start(),
+    io:format("~p~n",[{"Stop init_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+
   %  io:format("~p~n",[{"Start config_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=config_test:start(),
+ %   ok=config_test:start(),
   %  io:format("~p~n",[{"Stop config()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %  io:format("~p~n",[{"Start pod_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=pod_test:start(),
-    io:format("~p~n",[{"Stop pod_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   ok=pod_test:start(),
+ %   io:format("~p~n",[{"Stop pod_test()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
   %  io:format("~p~n",[{"Start monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
   %  ok=monkey(),
-    io:format("~p~n",[{"Stop monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    io:format("~p~n",[{"Stop monkey()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   
       %% End application tests
@@ -399,14 +403,7 @@ pass_2()->
 %% --------------------------------------------------------------------
 
 setup()->
- %   {ok,I}=file:consult("boot.config"), 
-   
-    % create vm dirs
- %   NodesToStart=proplists:get_value(nodes_to_start,I),
-   
- %   Dirs=[Dir||{_Host,Dir,Args}<-NodesToStart],
- %   Dirs=["1","2","3","4","5","6","7","8","9","controller","sd","dbase"],
- %   [os:cmd("rm -rf "++Dir)||Dir<-Dirs],   
+
    ok.
 
 

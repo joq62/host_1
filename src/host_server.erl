@@ -17,7 +17,7 @@
 % -include("").
 %% --------------------------------------------------------------------
 
-%-define(ScheduleInterval,1*30*1000).
+-define(ScheduleInterval,1*30*1000).
 
 %% External exports
 -export([
@@ -48,7 +48,7 @@
 %% --------------------------------------------------------------------
 init([]) ->
    
- %   spawn(fun()->do_desired_state() end),
+    spawn(fun()->do_desired_state() end),
     
     {ok, #state{}
     }.
@@ -107,8 +107,8 @@ handle_call(Request, From, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
-handle_cast({desired_state,CallerPid}, State) ->
-    spawn(fun()->do_desired_state(CallerPid) end),
+handle_cast({desired_state}, State) ->
+    spawn(fun()->do_desired_state() end),
     {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -145,28 +145,15 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-do_desired_state(CallerPid)->
-   % io:format("~p~n",[{time(),node(),?MODULE,?FUNCTION_NAME,?LINE,CallerPid}]),
-    case rpc:call(node(),host_desired_state,start,[],25*1000) of
-	[]->
-	    ok;
-	Action->
-	    {ok,HostName}=net:gethostname(),
-	    CallerPid!{{HostName,node()},desired_state_ret,[Action]}
-    end.
-		  
-
-
-do_desired_state_old()->
-%    io:format("~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,time()}]),
-    timer:sleep(glurk),
-    Result=case bully:am_i_leader(node()) of
-	       false->
-		   act_follower;
-	       true->
-		   rpc:call(node(),host_desired_state,start,[],25*1000)
-	   end,
-    
-    io:format("~p~n",[{time(),node(),Result}]),
-    rpc:cast(node(),?MODULE,desired_state,[]).
+do_desired_state()->
+    % io:format("~p~n",[{time(),node(),?MODULE,?FUNCTION_NAME,?LINE,CallerPid}]),
+    case bully:am_i_leader(node()) of
+	false->
+	    io:format("not_leader ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]);
+	true->
+	    Result=rpc:call(node(),host_desired_state,start,[],25*1000),
+	    io:format("Result ~p~n",[{node(),Result,?MODULE,?FUNCTION_NAME,?LINE}])
+    end,
+    timer:sleep(?ScheduleInterval),
+    rpc:cast(node(),host,desired_state,[]).
 		  

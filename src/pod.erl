@@ -18,10 +18,11 @@
 %-compile(export_all).
 -export([
 	 start_deployment/2,
+	 load_start_boot_loader/1,
 	 restart_hosts_nodes/0,
 	 map_ssh_start/1,
 	 load_start_apps/4,
-	 start_pod/4,
+	 start_pod/2,
 	 scoring_hosts/1,
 	 filter_hosts/2,
 	 ssh_start/1,
@@ -45,24 +46,28 @@
 %% Returns: non
 %% --------------------------------------------------------------------
 
+% {PodNode,_PodDir,_PodId}=PodInfo,
+% add_pod_status(Object,PodInfo)
+% 
+	
 start_deployment(DepId,HostId)->      
-    {ok,DeployInstanceId}=db_deploy_state:create(DepId,[]),
     [PodId]=db_deployment:pod_specs(DepId),
-    Result=case pod:start_pod(PodId,HostId,DepId,DeployInstanceId) of
+    Result=case pod:start_pod(PodId,HostId) of
 	       {error,Reason}->
 		   {error,Reason};
 	       {ok,PodNode,PodDir}->
 		   AppIds=db_pods:application(PodId),
-		   io:format(" AppIds ~p~n",[{AppIds,?MODULE,?FUNCTION_NAME,?LINE}]),
+		 %  io:format(" AppIds ~p~n",[{AppIds,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   case pod:load_start_apps(AppIds,PodId,PodNode,PodDir) of
 		       {error,Reason}->
 			   {error,Reason};
 		       {ok,PodAppInfo} -> %{PodId,PodNode,PodDir,App,Vsn}
-			   case rpc:call(PodNode,sd,get,[bully],5*1000) of
+			   case rpc:call(PodNode,sd,get,[dbase_infra],5*1000) of
 			       []->
-				   io:format(" bully not installed ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]);
-			       [BullyNode|_]->
-				   io:format("who_is_leader ~p~n",[{rpc:call(BullyNode,bully,who_is_leader,[],5*1000),?MODULE,?FUNCTION_NAME,?LINE}])
+				   ok;
+			       [DbaseNode|_]->
+				   {ok,DeployInstanceId}=rpc:call(DbaseNode,db_deploy_state,create,[DepId,[]],5*1000),			
+				   {atomic,ok}=rpc:call(DbaseNode,db_deploy_state,add_pod_status,[DeployInstanceId,{PodNode,PodDir,PodId}],2*5*1000)
 			   end,
 			   {ok,PodAppInfo}
 		   end
@@ -111,7 +116,7 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
 		   db_host:update_status(HostId,node_started),
 		   {ok,[HostId,HostNode]}
 	   end,
-     io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
+    % io:format("Result = ~p~n",[[{Result,?MODULE,?FUNCTION_NAME,?LINE}]]),
     Result.
 
 ssh_restart(HostId)->
@@ -134,7 +139,7 @@ ssh_restart(HostId)->
 %% Returns: non
 %% ------------------------------------------------------------------- 
 load_start_apps(AppIds,PodId,PodNode,PodDir)->
-    io:format("AppIds,PodId,PodNode,PodDir ~p~n",[{AppIds,PodId,PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
+   % io:format("AppIds,PodId,PodNode,PodDir ~p~n",[{AppIds,PodId,PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
     load_start_app(AppIds,PodId,PodNode,PodDir,[]).
     
 load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
@@ -210,7 +215,7 @@ unload_app(Pod,App,AppDir)->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------	       
-start_pod(PodId,HostId,DepId,DeployInstanceId)->
+start_pod(PodId,HostId)->
     UniquePod=integer_to_list(erlang:system_time(millisecond)),
     {PodName,_Vsn}=PodId,
     HostNode=db_host:node(HostId),
@@ -229,7 +234,6 @@ start_pod(PodId,HostId,DepId,DeployInstanceId)->
 		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
 		   {error,Reason};
 	       {ok,PodNode,PodDir} ->
-		   {atomic,ok}=db_deploy_state:add_pod_status(DeployInstanceId,{PodNode,PodDir,PodId}),
 		   {ok,PodNode,PodDir} 
 	   end,
     Result.
@@ -416,3 +420,60 @@ check_start([{ok,Reason}|T],Acc) ->
     
     NewAcc=[{ok,Reason}|Acc],
     check_start(T,NewAcc).
+
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+load_start_boot_loader(HostIdNodesList)->
+    load_start_boot_loader(HostIdNodesList,[]).
+
+load_start_boot_loader([],StartRes)->
+    Res=[{error,Reason}||{error,Reason}<-StartRes],
+    case Res of
+	[]->
+	    {ok,[AppInfo||{ok,AppInfo}<-StartRes]};
+	Reason->
+	    {error,Reason}
+    end;
+
+load_start_boot_loader([{HostId,HostNode}|T],Acc)->
+		    %% Start Controller OaM load boot_loader
+    ControllerDepIdList=[Id||{Id,_Name,_Vsn,PodSpecs,Affinity,_Status}<-db_deployment:read_all(),
+			     [{"controller","1.0.0"}]=:=PodSpecs,
+			     [HostId]=:=Affinity],
+    LoadStartRes=case ControllerDepIdList of
+		     []->
+			 WorkerDepIdList=[Id||{Id,_Name,_Vsn,PodSpecs,Affinity,_Status}<-db_deployment:read_all(),
+					      [{"worker","1.0.0"}]=:=PodSpecs,
+					      [HostId]=:=Affinity],
+			 case WorkerDepIdList of
+			     []->
+				 {error,[no_deployment,HostId,HostNode]};
+			     [DepId|_]->
+				 start_boot_loader(HostId,HostNode,DepId)
+			 end;
+		     [DepId|_]->
+			 start_boot_loader(HostId,HostNode,DepId)
+		 end,
+    NewAcc=[LoadStartRes|Acc],
+    load_start_boot_loader(T,NewAcc).	
+
+   
+start_boot_loader(HostId,HostNode,DepId)->    
+    io:format("HostId,HostNode,DepId ~p~n",[{HostId,HostNode,DepId,?MODULE,?FUNCTION_NAME,?LINE}]),
+    %AppDir=db_host:application_dir(FirstHostId),
+    PodDir="boot_loader",
+    NodeName="boot",
+    Cookie=atom_to_list(erlang:get_cookie()),
+    HostName=db_host:hostname(HostId),
+    Args="-hidden -setcookie "++Cookie,
+    {ok,Pod,PodDir}=pod:start_slave(HostNode,HostName,NodeName,Args,PodDir),
+    {App,Vsn,GitPath}=db_service_catalog:read({boot,"1.0.0"}),
+    ok=pod:load_app(Pod,PodDir,{App,Vsn,GitPath}),
+    {ok,AppInfo}=rpc:call(Pod,boot_loader,start,[DepId,HostId],4*5*1000),
+    rpc:call(Pod,init,stop,[],5*1000),
+    rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
+    timer:sleep(500),
+    {ok,AppInfo}.
