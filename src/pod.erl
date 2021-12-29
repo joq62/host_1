@@ -17,6 +17,9 @@
 %% --------------------------------------------------------------------
 %-compile(export_all).
 -export([
+	 start_deployment/2,
+	 restart_hosts_nodes/0,
+	 map_ssh_start/1,
 	 load_start_apps/4,
 	 start_pod/4,
 	 scoring_hosts/1,
@@ -36,7 +39,36 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 
+start_deployment(DepId,HostId)->      
+    {ok,DeployInstanceId}=db_deploy_state:create(DepId,[]),
+    [PodId]=db_deployment:pod_specs(DepId),
+    Result=case pod:start_pod(PodId,HostId,DepId,DeployInstanceId) of
+	       {error,Reason}->
+		   {error,Reason};
+	       {ok,PodNode,PodDir}->
+		   AppIds=db_pods:application(PodId),
+		   io:format(" AppIds ~p~n",[{AppIds,?MODULE,?FUNCTION_NAME,?LINE}]),
+		   case pod:load_start_apps(AppIds,PodId,PodNode,PodDir) of
+		       {error,Reason}->
+			   {error,Reason};
+		       {ok,PodAppInfo} -> %{PodId,PodNode,PodDir,App,Vsn}
+			   case rpc:call(PodNode,sd,get,[bully],5*1000) of
+			       []->
+				   io:format(" bully not installed ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]);
+			       [BullyNode|_]->
+				   io:format("who_is_leader ~p~n",[{rpc:call(BullyNode,bully,who_is_leader,[],5*1000),?MODULE,?FUNCTION_NAME,?LINE}])
+			   end,
+			   {ok,PodAppInfo}
+		   end
+		
+	   end,
+    Result.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -328,3 +360,59 @@ scoring_hosts(Candidates)->
 		 lists:keymember(Node,2,S1)]),
     SortedList.
     
+%% --------------------------------------------------------------------
+%% Function:start
+%% Description: List of test cases 
+%% Returns: non
+%% --------------------------------------------------------------------
+restart_hosts_nodes()->
+    Nodes=[db_host:node(Id)||Id<-db_host:ids()],
+    [rpc:call(Node,init,stop,[],5*1000)||Node<-Nodes],
+    timer:sleep(1000),
+    %% start all hosts
+    Ids=db_host:ids(),
+    Result=case map_ssh_start(Ids) of
+	       {ok,StartRes}->
+		%   io:format("StartRes ~p~n",[{StartRes,?MODULE,?FUNCTION_NAME,?LINE}]),
+		   %[rpc:call(N,os,cmd,["rm -rf *.pod"],5*1000)||{_Id,N}<-StartRes],
+		   [{_Id,Node1}|_]=StartRes,
+		   [rpc:call(Node1,net_adm,ping,[N],5*1000)||{_Id,N}<-StartRes],
+		   
+		   {ok,StartRes};
+	       {error,StartRes}->
+		   {error,StartRes}  
+	   end,
+    Result.
+
+map_ssh_start(Ids)->
+    F1=fun ssh_start/2,
+    F2 = fun check_start/3,
+    StartRes=mapreduce:start(F1,F2,[],Ids),
+    Result=case [{error,Reason}||{error,Reason}<-StartRes] of
+	       []->
+		   Filtered=[{HostId,HostNode}||{ok,[HostId,HostNode]}<-StartRes],
+		   {ok,Filtered};
+	       _->
+		   {error,StartRes}
+	   end,
+%   io:format("~p~n",[Result]),
+    Result.
+
+ssh_start(Pid,Id)->
+    Pid!{ssh_start,pod:ssh_start(Id)}.
+
+check_start(Key,Vals,[])->
+  %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
+    check_start(Vals,[]).
+
+check_start([],StartResult)->
+    StartResult;
+check_start([{error,Reason}|T],Acc) ->
+    io:format("~p~n",[{error,Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+    NewAcc=[{error,Reason}|Acc],
+    check_start(T,NewAcc);
+check_start([{ok,Reason}|T],Acc) ->
+ %  io:format("~p~n",[{ok,Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+    
+    NewAcc=[{ok,Reason}|Acc],
+    check_start(T,NewAcc).
