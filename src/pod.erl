@@ -178,12 +178,23 @@ load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
     AppDirSource=atom_to_list(Application),
     AppDirDest=filename:join(PodDir,AppDirSource),
     rpc:call(Pod,os,cmd,["rm -rf "++AppDirDest],2*1000),
+    timer:sleep(500),
     rpc:call(Pod,os,cmd,["git clone "++GitPath],3*1000),
+    timer:sleep(500),
     rpc:call(Pod,os,cmd,["mv "++AppDirSource++" "++AppDirDest],10*1000),
+    timer:sleep(500),
     Ebin=filename:join(AppDirDest,"ebin"),
-    true=rpc:call(Pod,filelib,is_dir,[Ebin],3*1000),
-    true=rpc:call(Pod,code,add_patha,[Ebin],3*1000),
-    ok.
+    case rpc:call(Pod,filelib,is_dir,[Ebin],5*1000) of
+	false->
+	    {error,[eexist,Ebin,?MODULE,?FUNCTION_NAME,?LINE]};
+	true->
+	    case rpc:call(Pod,code,add_patha,[Ebin],5*1000) of
+		true->
+		    ok;
+		Reason->
+		    {error,Reason}
+	    end
+    end.
 
 start_app(Pod,App,Env)->
     AppFile=atom_to_list(App)++".app",
