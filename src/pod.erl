@@ -227,7 +227,7 @@ unload_app(Pod,App,AppDir)->
 %% Returns: non
 %% -------------------------------------------------------------------	       
 start_pod(PodId,HostId)->
-    UniquePod=integer_to_list(erlang:system_time(millisecond)),
+    UniquePod=integer_to_list(erlang:system_time(second)),
     {PodName,_Vsn}=PodId,
     HostNode=db_host:node(HostId),
     HostName=db_host:hostname(HostId), 
