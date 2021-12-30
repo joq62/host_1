@@ -14,7 +14,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-% -include("").
+-include("logger_infra.hrl").
 %% --------------------------------------------------------------------
 
 -define(ScheduleInterval,1*30*1000).
@@ -49,7 +49,7 @@
 init([]) ->
    
     spawn(fun()->do_desired_state() end),
-    
+    log:log(?logger_info(info,"server started",[])),
     {ok, #state{}
     }.
 
@@ -96,7 +96,8 @@ handle_call({stop}, _From, State) ->
     {stop, normal, shutdown_ok, State};
 
 handle_call(Request, From, State) ->
-    Reply = {unmatched_signal,?MODULE,Request,From},
+    log:log(?logger_info(ticket,"unmatched call",[Request, From])),
+    Reply = {ticket,"unmatched call",Request, From},
     {reply, Reply, State}.
 
 %% --------------------------------------------------------------------
@@ -112,7 +113,7 @@ handle_cast({desired_state}, State) ->
     {noreply, State};
 
 handle_cast(Msg, State) ->
-    io:format("unmatched match cast ~p~n",[{Msg,?MODULE,?LINE,time()}]),
+    log:log(?logger_info(ticket,"unmatched cast",[Msg])),
     {noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -123,7 +124,7 @@ handle_cast(Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_info(Info, State) ->
-    io:format("unmatched match info ~p~n",[{Info,?MODULE,?LINE,time()}]),
+    log:log(?logger_info(ticket,"unmatched info",[Info])),
     {noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -149,10 +150,9 @@ do_desired_state()->
     % io:format("~p~n",[{time(),node(),?MODULE,?FUNCTION_NAME,?LINE,CallerPid}]),
     case bully:am_i_leader(node()) of
 	false->
-	    io:format("not_leader ~p~n",[{node(),?MODULE,?FUNCTION_NAME,?LINE}]);
+	    ok;
 	true->
-	    Result=rpc:call(node(),host_desired_state,start,[],25*1000),
-	    io:format("Result ~p~n",[{node(),Result,?MODULE,?FUNCTION_NAME,?LINE}])
+	    rpc:call(node(),host_desired_state,start,[],1*60*1000)
     end,
     timer:sleep(?ScheduleInterval),
     rpc:cast(node(),host,desired_state,[]).

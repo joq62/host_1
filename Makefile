@@ -5,7 +5,7 @@ all:
 	rm -rf  *~ */*~  erl_cra*;
 #	common
 #	cp ../common/src/*.app ebin;
-	erlc -I include -o ebin ../../common/src/*.erl;
+	erlc  -I ../../include -I include -o ebin ../../common/src/*.erl;
 #	app
 	cp src/*.app ebin;
 	erlc -I ../../include -o ebin src/*.erl;

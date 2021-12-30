@@ -9,7 +9,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+-include("logger_infra.hrl").
 %%---------------------------------------------------------------------
 %% Records for test
 %%
@@ -26,7 +26,13 @@ start()->
     StartedHostNodes=lists:sort(lib_status:node_started()),
     HostsToStart=[HostId||HostId<-StartedOs,
 			  false=:=lists:member(HostId,StartedHostNodes)],
-    pod:map_ssh_start(HostsToStart).
+    case HostsToStart of
+	[]->
+	    ok;
+	HostsToStart->
+	    log:log(?logger_info(info,"HostsToStart",[HostsToStart])),
+	    pod:map_ssh_start(HostsToStart)
+    end.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
