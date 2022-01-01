@@ -15,8 +15,11 @@
 %%
 
 %% --------------------------------------------------------------------
--compile(export_all).
+%-compile(export_all).
+-export([
+	 start/0
 
+	 ]).
 
 %% ====================================================================
 %% External functions
@@ -39,12 +42,3 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-
-    
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% --------------------------------------------------------------------
-
-

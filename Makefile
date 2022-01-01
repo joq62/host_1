@@ -17,7 +17,7 @@ unit_test:
 	mkdir test_ebin;
 #	common
 #	cp ../common/src/*.app ebin;
-	erlc -D unit_test -o ebin ../../common/src/*.erl;
+	erlc -D unit_test  -I ../../include -o ebin ../../common/src/*.erl;
 #	bully
 	cp ../bully/src/*.app ebin;
 	erlc -D unit_test -I ../../include -o ebin ../bully/src/*.erl;
@@ -26,7 +26,7 @@ unit_test:
 	erlc -D unit_test -I ../../include -o ebin ../sd/src/*.erl;
 #	dbase_infra
 	cp ../dbase_infra/src/*.app ebin;
-	erlc -D unit_test -I ../controller/include -I ../dbase_infra/include -I ../include -o ebin ../dbase_infra/src/*.erl;
+	erlc -D unit_test  -I ../../include -I ../controller/include -I ../dbase_infra/include -I ../include -o ebin ../dbase_infra/src/*.erl;
 #	app-host
 	cp src/*.app ebin;
 	erlc -D unit_test -I ../../include -o ebin src/*.erl;

@@ -74,10 +74,10 @@ handle_call({host_status,Id},_From, State) ->
     Reply=db_host:status(Id),
     {reply, Reply, State};
 handle_call({node_status},_From, State) ->
-    Reply=glurk,
+    Reply={node_status},
     {reply, Reply, State};
 handle_call({node_status,Id},_From, State) ->
-    Reply=glurk,
+    Reply={node_status,Id},
     {reply, Reply, State};
 
 

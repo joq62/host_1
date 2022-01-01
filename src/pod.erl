@@ -9,7 +9,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+-include("logger_infra.hrl").
 %%---------------------------------------------------------------------
 %% Records for test
 %%
@@ -98,15 +98,15 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
     %% Added Host dir where all deployments are stored
     Rm="rm -rf "++AppDir,
     SshRmCmd="nohup "++Rm++" &",
-    SshRmCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshRmCmd, 5*1000],4*1000), 
+    _SshRmCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshRmCmd, 5*1000],4*1000), 
    
     MkDir="mkdir "++AppDir,
     SshMkDirCmd="nohup "++MkDir++" &",
-    SshMkDirCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshMkDirCmd, 5*1000],4*1000), 
+    _SshMkDirCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshMkDirCmd, 5*1000],4*1000), 
 
     ErlCmd=Erl++" "++"-sname "++NodeName++" "++"-setcookie "++Cookie,
     SshErlCmd="nohup "++ErlCmd++" &",
-    SshErlCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshErlCmd, 5*1000],4*1000), 
+    _SshErlCmdRes=rpc:call(node(),my_ssh,ssh_send,[Ip,Port,Uid,Pwd,SshErlCmd, 5*1000],4*1000), 
  %  io:format("SshResult = ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE,SshResult}]),
     Result=case node_started(HostNode) of
 	       false->
@@ -319,26 +319,26 @@ check_started(N,Vm,SleepTime,_Result)->
 %% Returns: non
 %% --------------------------------------------------------------------
 
-node_stopped(Node)->
-    check_stopped(100,Node,50,false).
+%node_stopped(Node)->
+%    check_stopped(100,Node,50,false).
     
-check_stopped(_N,_Vm,_SleepTime,true)->
-   true;
-check_stopped(0,_Vm,_SleepTime,Result)->
-    Result;
-check_stopped(N,Vm,SleepTime,_Result)->
+%check_stopped(_N,_Vm,_SleepTime,true)->
+%   true;
+%check_stopped(0,_Vm,_SleepTime,Result)->
+ %   Result;
+%check_stopped(N,Vm,SleepTime,_Result)->
  %   io:format("net_Adm ~p~n",[net_adm:ping(Vm)]),
-    NewResult= case net_adm:ping(Vm) of
+ %   NewResult= case net_adm:ping(Vm) of
 	%case rpc:call(node(),net_adm,ping,[Vm],1000) of
-		  pang->
-		     true;
-		  pong->
-		       timer:sleep(SleepTime),
-		       false;
-		   {badrpc,_}->
-		       true
-	       end,
-    check_stopped(N-1,Vm,SleepTime,NewResult).
+%		  pang->
+%		     true;
+%		  pong->
+%		       timer:sleep(SleepTime),
+%		       false;
+%		   {badrpc,_}->
+%		       true
+%	       end,
+ %   check_stopped(N-1,Vm,SleepTime,NewResult).
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -389,9 +389,8 @@ restart_hosts_nodes()->
     Result=case map_ssh_start(Ids) of
 	       {ok,StartRes}->
 		%   io:format("StartRes ~p~n",[{StartRes,?MODULE,?FUNCTION_NAME,?LINE}]),
-		   %[rpc:call(N,os,cmd,["rm -rf *.pod"],5*1000)||{_Id,N}<-StartRes],
-		   [{_Id,Node1}|_]=StartRes,
-		   [rpc:call(Node1,net_adm,ping,[N],5*1000)||{_Id,N}<-StartRes],
+		   [{_,Node1}|_]=StartRes,
+		   [rpc:call(Node1,net_adm,ping,[N],5*1000)||{_,N}<-StartRes],
 		   
 		   {ok,StartRes};
 	       {error,StartRes}->
@@ -416,7 +415,7 @@ map_ssh_start(Ids)->
 ssh_start(Pid,Id)->
     Pid!{ssh_start,pod:ssh_start(Id)}.
 
-check_start(Key,Vals,[])->
+check_start(_Key,Vals,[])->
   %  io:format("~p~n",[{?MODULE,?LINE,Key,Vals}]),
     check_start(Vals,[]).
 
