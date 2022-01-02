@@ -148,6 +148,7 @@ load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
 	[]->
 	    {ok,[PodAppInfo||{ok,PodAppInfo}<-StartRes]};
 	ErrorList->
+	    log:log(?logger_info(ticket,"error",[ErrorList])),
 	    {error,ErrorList}
     end;
 load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
@@ -156,11 +157,13 @@ load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
     GitPath=db_service_catalog:git_path(AppId),
     NewAcc=case pod:load_app(PodNode,PodDir,{App,Vsn,GitPath}) of
 	       {error,Reason}->
+		   log:log(?logger_info(ticket,"error",[Reason])),
 		   [{error,Reason}|Acc];
 	       ok->
 		   Env=[],
 		   case pod:start_app(PodNode,App,Env) of
 		       {error,Reason}->
+			   log:log(?logger_info(ticket,"error",[Reason])),
 			   [{error,Reason}|Acc];
 		       ok->
 			   [{ok,{PodId,PodNode,PodDir,App,Vsn}}|Acc]
@@ -186,12 +189,14 @@ load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
     Ebin=filename:join(AppDirDest,"ebin"),
     case rpc:call(Pod,filelib,is_dir,[Ebin],5*1000) of
 	false->
+	    log:log(?logger_info(ticket,"eexist",[Pod,Ebin])),
 	    {error,[eexist,Ebin,?MODULE,?FUNCTION_NAME,?LINE]};
 	true->
 	    case rpc:call(Pod,code,add_patha,[Ebin],5*1000) of
 		true->
 		    ok;
 		Reason->
+		    log:log(?logger_info(ticket,"error add_patha",[Reason])),
 		    {error,Reason}
 	    end
     end.
@@ -200,8 +205,10 @@ start_app(Pod,App,Env)->
     AppFile=atom_to_list(App)++".app",
     Result=case rpc:call(Pod,code,where_is_file,[AppFile],5*1000) of
 	       {badrpc,Reason}->
+		   log:log(?logger_info(ticket,"badrpc",[Reason])),
 		   {badrpc,Reason};
 	       non_existing ->
+		   log:log(?logger_info(ticket,"non_existing",[Pod,App])),
 		   {error,[non_existing,Pod,App]};
 	       _ ->
 		   case Env of 
@@ -243,6 +250,7 @@ start_pod(PodId,HostId)->
     Args="-setcookie "++Cookie,
     Result=case pod:start_slave(HostNode,HostName,NodeName,Args,PodDir) of
 	       {error,Reason}->
+		   log:log(?logger_info(ticket,"error",[Reason])),
 		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
 		   {error,Reason};
 	       {ok,PodNode,PodDir} ->
@@ -425,7 +433,7 @@ check_start(_Key,Vals,[])->
 check_start([],StartResult)->
     StartResult;
 check_start([{error,Reason}|T],Acc) ->
-    io:format("~p~n",[{error,Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+    log:log(?logger_info(ticket,"error",[Reason])),
     NewAcc=[{error,Reason}|Acc],
     check_start(T,NewAcc);
 check_start([{ok,Reason}|T],Acc) ->
