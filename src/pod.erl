@@ -231,7 +231,8 @@ start_pod(PodId,HostId)->
     {PodName,_Vsn}=PodId,
     HostNode=db_host:node(HostId),
     HostName=db_host:hostname(HostId), 
-    NodeName=HostName++"_"++PodName++"_"++UniquePod,
+ %   NodeName=HostName++"_"++PodName++"_"++UniquePod,
+    NodeName=PodName++"_"++UniquePod,
     AppDir=db_host:application_dir(HostId),
     PodDir=filename:join(AppDir,NodeName++".pod"),
  
