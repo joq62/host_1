@@ -33,9 +33,9 @@ start()->
 	[]->
 	    ok;
 	HostsToStart->
-	    log:log(?logger_info(info,"HostsToStart",[HostsToStart])),
-	    
-	    pod:restart_hosts_nodes(HostsToStart)
+	    Result=pod:restart_hosts_nodes(HostsToStart),
+	    log:log(?logger_info(info,"HostsToStart Result",[Result,HostsToStart])),
+	    Result
     end.
 
 %% --------------------------------------------------------------------
