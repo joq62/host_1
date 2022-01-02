@@ -34,7 +34,8 @@ start()->
 	    ok;
 	HostsToStart->
 	    log:log(?logger_info(info,"HostsToStart",[HostsToStart])),
-	    pod:map_ssh_start(HostsToStart)
+	    
+	    pod:restart_hosts_nodes(HostsToStart)
     end.
 
 %% --------------------------------------------------------------------

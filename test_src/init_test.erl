@@ -79,10 +79,10 @@ start()->
 %% Returns: non
 %% -------------------------------------------------------------------
 pass1()->
-    [{"c100","host1"},
-     {"c100","host2"},
-     {"c100","host3"},
-     {"c100","host4"}]=lists:sort(lib_status:os_started()),
+    [{"c200","host"},
+     {"c201","host"},
+     {"c202","host"},
+     {"c203","host"}]=lists:sort(lib_status:os_started()),
     []=lists:sort(lib_status:node_started()),
     
     {ok,AppInfo}=host_desired_state:start(),

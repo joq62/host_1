@@ -383,17 +383,17 @@ scoring_hosts(Candidates)->
 %% Returns: non
 %% --------------------------------------------------------------------
 restart_hosts_nodes()->
-    Nodes=[db_host:node(Id)||Id<-db_host:ids()],
+    restart_hosts_nodes(db_host:ids()).
+restart_hosts_nodes(HostIdsList)->
+    Nodes=[db_host:node(Id)||Id<-HostIdsList],
     [rpc:call(Node,init,stop,[],5*1000)||Node<-Nodes],
     timer:sleep(1000),
     %% start all hosts
-    Ids=db_host:ids(),
-    Result=case map_ssh_start(Ids) of
+    Result=case map_ssh_start(HostIdsList) of
 	       {ok,StartRes}->
 		%   io:format("StartRes ~p~n",[{StartRes,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   [{_,Node1}|_]=StartRes,
 		   [rpc:call(Node1,net_adm,ping,[N],5*1000)||{_,N}<-StartRes],
-		   
 		   {ok,StartRes};
 	       {error,StartRes}->
 		   {error,StartRes}  
@@ -409,6 +409,7 @@ map_ssh_start(Ids)->
 		   Filtered=[{HostId,HostNode}||{ok,[HostId,HostNode]}<-StartRes],
 		   {ok,Filtered};
 	       _->
+		   log:log(?logger_info(ticket,"StartRes",[StartRes])),
 		   {error,StartRes}
 	   end,
 %   io:format("~p~n",[Result]),
