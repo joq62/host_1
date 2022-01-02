@@ -149,11 +149,13 @@ code_change(_OldVsn, State, _Extra) ->
 do_desired_state()->
     % io:format("~p~n",[{time(),node(),?MODULE,?FUNCTION_NAME,?LINE,CallerPid}]),
     case bully:am_i_leader(node()) of
-	false->
-	    ok;
-	true->
-	    rpc:call(node(),host_desired_state,start,[],1*60*1000)
-    end,
+	       false->
+		   ok;
+	       true->
+		   Result=rpc:call(node(),host_desired_state,start,[],2*60*1000),
+		   log:log(?logger_info(info,"Result",[Result]))
+	   end,
+   
     timer:sleep(?ScheduleInterval),
     rpc:cast(node(),host,desired_state,[]).
 		  

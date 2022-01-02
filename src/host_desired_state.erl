@@ -33,9 +33,9 @@ start()->
 	[]->
 	    ok;
 	HostsToStart->
-	    Result=pod:restart_hosts_nodes(HostsToStart),
-	    log:log(?logger_info(info,"HostsToStart Result",[Result,HostsToStart])),
-	    Result
+	    [pod:ssh_start(HostId)||HostId<-HostsToStart]
+	   % Result=pod:restart_hosts_nodes(HostsToStart),
+	    
     end.
 
 %% --------------------------------------------------------------------
