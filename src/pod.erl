@@ -148,6 +148,7 @@ load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
 	[]->
 	    {ok,[PodAppInfo||{ok,PodAppInfo}<-StartRes]};
 	ErrorList->
+	    io:format("error ~p~n",[{ErrorList,?MODULE,?FUNCTION_NAME,?LINE}]),
 	    log:log(?logger_info(ticket,"error",[ErrorList])),
 	    {error,ErrorList}
     end;
@@ -157,12 +158,14 @@ load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
     GitPath=db_service_catalog:git_path(AppId),
     NewAcc=case pod:load_app(PodNode,PodDir,{App,Vsn,GitPath}) of
 	       {error,Reason}->
+		   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"error",[Reason])),
 		   [{error,Reason}|Acc];
 	       ok->
 		   Env=[],
 		   case pod:start_app(PodNode,App,Env) of
 		       {error,Reason}->
+			   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 			   log:log(?logger_info(ticket,"error",[Reason])),
 			   [{error,Reason}|Acc];
 		       ok->
@@ -189,6 +192,7 @@ load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
     Ebin=filename:join(AppDirDest,"ebin"),
     case rpc:call(Pod,filelib,is_dir,[Ebin],5*1000) of
 	false->
+	    io:format("eexist ~p~n",[{Pod,Ebin,?MODULE,?FUNCTION_NAME,?LINE}]),
 	    log:log(?logger_info(ticket,"eexist",[Pod,Ebin])),
 	    {error,[eexist,Ebin,?MODULE,?FUNCTION_NAME,?LINE]};
 	true->
@@ -196,6 +200,7 @@ load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
 		true->
 		    ok;
 		Reason->
+		    io:format("error add_path ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		    log:log(?logger_info(ticket,"error add_patha",[Reason])),
 		    {error,Reason}
 	    end
@@ -205,9 +210,11 @@ start_app(Pod,App,Env)->
     AppFile=atom_to_list(App)++".app",
     Result=case rpc:call(Pod,code,where_is_file,[AppFile],5*1000) of
 	       {badrpc,Reason}->
+		   io:format("error code,where_is_file ~p~n",[{Pod, Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"badrpc",[Reason])),
 		   {badrpc,Reason};
 	       non_existing ->
+		   io:format("non_existing ~p~n",[{Pod,App,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"non_existing",[Pod,App])),
 		   {error,[non_existing,Pod,App]};
 	       _ ->
@@ -250,6 +257,7 @@ start_pod(PodId,HostId)->
     Args="-setcookie "++Cookie,
     Result=case pod:start_slave(HostNode,HostName,NodeName,Args,PodDir) of
 	       {error,Reason}->
+		   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"error",[Reason])),
 		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
 		   {error,Reason};
