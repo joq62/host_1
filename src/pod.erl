@@ -301,7 +301,7 @@ start_pod(PodId,HostId)->
 		    end;
 		Reason->
 		    log:log(?logger_info(ticket,"error",[Reason])),
-		    Reason
+		    {error,Reason}
 	    end,
     Result.
 
