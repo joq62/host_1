@@ -148,27 +148,35 @@ load_start_app([],_PodId,_PodNode,_PodDir,StartRes)->
 	[]->
 	    {ok,[PodAppInfo||{ok,PodAppInfo}<-StartRes]};
 	ErrorList->
-	    io:format("error ~p~n",[{ErrorList,?MODULE,?FUNCTION_NAME,?LINE}]),
+	%    io:format("error ~p~n",[{ErrorList,?MODULE,?FUNCTION_NAME,?LINE}]),
 	    log:log(?logger_info(ticket,"error",[ErrorList])),
 	    {error,ErrorList}
     end;
 load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
+  %  io:format("#10# AppId, PodId,PodNode,PodDir,Acc ~p~n",[{PodId,PodNode,PodDir,Acc,?MODULE,?FUNCTION_NAME,?LINE}]),
+   % io:format("#10# is_dir(PodDir) ~p~n",[{rpc:call(PodNode,filelib,is_dir,[PodDir],5*1000),
+%				      PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
+
     App=db_service_catalog:app(AppId),
     Vsn=db_service_catalog:vsn(AppId),
     GitPath=db_service_catalog:git_path(AppId),
     NewAcc=case pod:load_app(PodNode,PodDir,{App,Vsn,GitPath}) of
 	       {error,Reason}->
-		   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+%		   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"error",[Reason])),
 		   [{error,Reason}|Acc];
 	       ok->
+%		   io:format("#30# is_dir(PodDir) ~p~n",[{rpc:call(PodNode,filelib,is_dir,[PodDir],5*1000),
+%							  PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   Env=[],
 		   case pod:start_app(PodNode,App,Env) of
 		       {error,Reason}->
-			   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+%			   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 			   log:log(?logger_info(ticket,"error",[Reason])),
 			   [{error,Reason}|Acc];
 		       ok->
+%			   io:format("#31# is_dir(PodDir) ~p~n",[{rpc:call(PodNode,filelib,is_dir,[PodDir],5*1000),
+%								  PodNode,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
 			   [{ok,{PodId,PodNode,PodDir,App,Vsn}}|Acc]
 		   end
 	   end,
@@ -181,51 +189,77 @@ load_start_app([AppId|T],PodId,PodNode,PodDir,Acc)->
     
 
 load_app(Pod,PodDir,{Application,_Vsn,GitPath})->
-    AppDirSource=atom_to_list(Application),
-    AppDirDest=filename:join(PodDir,AppDirSource),
-    rpc:call(Pod,os,cmd,["rm -rf "++AppDirDest],2*1000),
-    timer:sleep(500),
-    rpc:call(Pod,os,cmd,["git clone "++GitPath],3*1000),
-    timer:sleep(500),
-    rpc:call(Pod,os,cmd,["mv "++AppDirSource++" "++AppDirDest],10*1000),
-    timer:sleep(500),
-    Ebin=filename:join(AppDirDest,"ebin"),
-    case rpc:call(Pod,filelib,is_dir,[Ebin],5*1000) of
-	false->
-	    io:format("eexist ~p~n",[{Pod,Ebin,?MODULE,?FUNCTION_NAME,?LINE}]),
-	    log:log(?logger_info(ticket,"eexist",[Pod,Ebin])),
-	    {error,[eexist,Ebin,?MODULE,?FUNCTION_NAME,?LINE]};
-	true->
-	    case rpc:call(Pod,code,add_patha,[Ebin],5*1000) of
-		true->
-		    ok;
-		Reason->
-		    io:format("error add_path ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
-		    log:log(?logger_info(ticket,"error add_patha",[Reason])),
-		    {error,Reason}
+   % io:format("#1# is_dir(PodDir) ~p~n",[{rpc:call(Pod,filelib,is_dir,[PodDir],5*1000),
+%				      Application,Pod,PodDir,?MODULE,?FUNCTION_NAME,?LINE}]),
+    %% Create a Temp Dir 
+    TempDir="temp",
+    AppDir=atom_to_list(Application),
+    TempAppDir=filename:join(TempDir,AppDir),
+    Result=case create_temp_dir(Pod,TempDir,TempAppDir) of
+	       {error,Reason}->
+		   log:log(?logger_info(ticket,"error",[Reason]));
+	       ok->%% Clone
+		   rpc:call(Pod,os,cmd,["git clone "++GitPath++" "++TempAppDir],3*1000),
+		   []=rpc:call(Pod,os,cmd,["mv "++TempAppDir++" "++PodDir],10*1000),		   
+		   Ebin=filename:join([PodDir,AppDir,"ebin"]),
+		   case rpc:call(Pod,filelib,is_dir,[Ebin],5*1000) of
+		       false->
+%			   io:format("eexist ~p~n",[{Pod,Ebin,?MODULE,?FUNCTION_NAME,?LINE}]),
+			   log:log(?logger_info(ticket,"eexist",[Pod,Ebin])),
+			   {error,[eexist,Ebin,?MODULE,?FUNCTION_NAME,?LINE]};
+		       true->
+			   case rpc:call(Pod,code,add_patha,[Ebin],5*1000) of
+			       true->
+				   ok;
+			       Reason->
+%				   io:format("error add_path ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+				   log:log(?logger_info(ticket,"error add_patha",[Reason])),
+				   {error,Reason}
+			   end
+		   end
+	   end,
+    rpc:call(Pod,os,cmd,["rm -rf "++TempDir],2*1000),
+    Result.    
+
+create_temp_dir(Pod,TempDir,TempAppDir)->
+    rpc:call(Pod,os,cmd,["rm -rf "++TempDir],2*1000),
+    timer:sleep(1000),  
+    case rpc:call(Pod,file,make_dir,[TempDir],2*1000) of
+	{error,Reason}->
+	    	{error,Reason};
+	ok->
+	    case rpc:call(Pod,file,make_dir,[TempAppDir],2*1000) of
+		{error,Reason}->
+		    {error,Reason};
+		ok->
+		    ok
 	    end
     end.
+  
+
+
 
 start_app(Pod,App,Env)->
     AppFile=atom_to_list(App)++".app",
     Result=case rpc:call(Pod,code,where_is_file,[AppFile],5*1000) of
 	       {badrpc,Reason}->
-		   io:format("error code,where_is_file ~p~n",[{Pod, Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
+%		   io:format("error code,where_is_file ~p~n",[{Pod, Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
 		   log:log(?logger_info(ticket,"badrpc",[Reason])),
 		   {badrpc,Reason};
 	       non_existing ->
-		   io:format("non_existing ~p~n",[{Pod,App,?MODULE,?FUNCTION_NAME,?LINE}]),
-		   log:log(?logger_info(ticket,"non_existing",[Pod,App])),
+%		   io:format("non_existing ~p~n",[{Pod,App,?MODULE,?FUNCTION_NAME,?LINE}]),
+		   log:log(?logger_info(ticket,"non_existing",[Pod,App,AppFile])),
 		   {error,[non_existing,Pod,App]};
 	       _ ->
 		   case Env of 
 		       []->
-			   rpc:call(Pod,application,start,[App],10*1000);
+			   ok=rpc:call(Pod,application,start,[App],10*1000);
 		       Env->
 			   rpc:call(Pod,application,set_env,[Env],5*1000),
-			   rpc:call(Pod,application,start,[App],10*1000)
+			   ok=rpc:call(Pod,application,start,[App],10*1000)
 		   end
 	   end,	   
+  %  io:format("start_app Result ~p~n",[{Result,Pod,App,?MODULE,?FUNCTION_NAME,?LINE}]),
     Result.
 	
 stop_app(Pod,App)->	   
@@ -252,18 +286,22 @@ start_pod(PodId,HostId)->
  
     rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
     timer:sleep(1000),
-    ok=rpc:call(HostNode,file,make_dir,[PodDir],5*1000),
-    Cookie=atom_to_list(erlang:get_cookie()),
-    Args="-setcookie "++Cookie,
-    Result=case pod:start_slave(HostNode,HostName,NodeName,Args,PodDir) of
-	       {error,Reason}->
-		   io:format("error ~p~n",[{Reason,?MODULE,?FUNCTION_NAME,?LINE}]),
-		   log:log(?logger_info(ticket,"error",[Reason])),
-		   rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
-		   {error,Reason};
-	       {ok,PodNode,PodDir} ->
-		   {ok,PodNode,PodDir} 
-	   end,
+    Result= case rpc:call(HostNode,file,make_dir,[PodDir],5*1000) of
+		ok->
+		    Cookie=atom_to_list(erlang:get_cookie()),
+		    Args="-setcookie "++Cookie,
+		    case pod:start_slave(HostNode,HostName,NodeName,Args,PodDir) of
+			{error,Reason}->
+			    log:log(?logger_info(ticket,"error",[Reason])),
+			    rpc:call(HostNode,os,cmd,["rm -rf "++PodDir],5*1000),
+			    {error,Reason};
+			{ok,PodNode,PodDir} ->
+			    {ok,PodNode,PodDir} 
+		    end;
+		Reason->
+		    log:log(?logger_info(ticket,"error",[Reason])),
+		    Reason
+	    end,
     Result.
 
 
