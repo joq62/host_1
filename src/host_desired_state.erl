@@ -29,10 +29,14 @@ start()->
     StartedHostNodes=lists:sort(lib_status:node_started()),
     HostsToStart=[HostId||HostId<-StartedOs,
 			  false=:=lists:member(HostId,StartedHostNodes)],
+ 
+    
+
     case HostsToStart of
 	[]->
 	    ok;
 	HostsToStart->
+	    
 	    [pod:ssh_start(HostId)||HostId<-HostsToStart]
 	   % Result=pod:restart_hosts_nodes(HostsToStart),
 	    

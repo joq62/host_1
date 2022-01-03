@@ -9,7 +9,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
-
+-include("logger_infra.hrl").
 %%---------------------------------------------------------------------
 %% Records for test
 %%
@@ -103,11 +103,11 @@ get_hostname(Parent,Id)->
     R1=rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg, 5*1000],4*1000),
     Result=case R1=:=[Host] of
 	       false->
+		    log:log(?logger_info(ticket,"error my_ssh,ssh_send",[R1,Id])),
 		   [R1];
 	       true->
 		   ok
 	   end,
-	
     Parent!{machine_status,{Id,Ip,SshPort,Result}}.
 
 check_host_status(machine_status,Vals,_)->
