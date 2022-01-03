@@ -113,6 +113,7 @@ ssh_start(HostId,HostNode,NodeName,Cookie,Erl)->
 		   db_host:update_status(HostId,host_started),
 		   {error,[false,HostId,HostNode]};
 	       true->
+		   [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
 		   db_host:update_status(HostId,node_started),
 		   {ok,[HostId,HostNode]}
 	   end,

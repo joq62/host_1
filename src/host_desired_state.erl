@@ -25,6 +25,7 @@
 %% External functions
 %% ====================================================================
 start()->
+   % [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
     StartedOs=lists:sort(lib_status:os_started()),
     StartedHostNodes=lists:sort(lib_status:node_started()),
     HostsToStart=[HostId||HostId<-StartedOs,
@@ -38,6 +39,7 @@ start()->
 	HostsToStart->
 	    log:log(?logger_info(ticket,"hosts to start ",[HostsToStart])),
 	    Result=[pod:ssh_start(HostId)||HostId<-HostsToStart],
+	  %  [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
 	    log:log(?logger_info(ticket,"Start Result ",[Result])),
 	   % Result=pod:restart_hosts_nodes(HostsToStart),
 	    Result
