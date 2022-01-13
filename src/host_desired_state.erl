@@ -9,7 +9,7 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include("logger_infra.hrl").
+-include("log.hrl").
 %%---------------------------------------------------------------------
 %% Records for test
 %%
@@ -26,22 +26,20 @@
 %% ====================================================================
 start()->
    % [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
-    StartedOs=lists:sort(lib_status:os_started()),
-    StartedHostNodes=lists:sort(lib_status:node_started()),
+    StartedOs=lists:sort(lib_host:os_started()),
+    StartedHostNodes=lists:sort(lib_host:node_started()),
     HostsToStart=[HostId||HostId<-StartedOs,
 			  false=:=lists:member(HostId,StartedHostNodes)],
- 
-    
-
     case HostsToStart of
 	[]->
 	    ok;
 	HostsToStart->
-	    log:log(?logger_info(ticket,"hosts to start ",[HostsToStart])),
-	    Result=[pod:ssh_start(HostId)||HostId<-HostsToStart],
+	    log:log(?Log_ticket("hosts to start ",[HostsToStart])),
+	 %   Result=[pod:ssh_start(HostId)||HostId<-HostsToStart],
 	  %  [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
-	    log:log(?logger_info(ticket,"Start Result ",[Result])),
+	 %   log:log(?Log_ticket("Start Result ",[Result])),
 	   % Result=pod:restart_hosts_nodes(HostsToStart),
+	    Result=glurk,
 	    Result
 	    
     end.

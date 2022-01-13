@@ -14,10 +14,11 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include("logger_infra.hrl").
+-include("log.hrl").
+-include("host.hrl").
 %% --------------------------------------------------------------------
 
--define(ScheduleInterval,1*30*1000).
+
 
 %% External exports
 -export([
@@ -47,9 +48,20 @@
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-   
+    case code:where_is_file(?TextFile) of
+	non_existing->
+	    rpc:cast(node(),log,log,[?Log_ticket("non_existing textfile",[])]);
+	TextFile->
+	    case rpc:call(node(),lib_host,load_textfile,[TextFile],5000) of
+		{atomic,ok}->
+		    ok;
+		{error,Reason}->
+		    rpc:cast(node(),log,log,[?Log_ticket("error in load_textfile to mnesia ",[Reason])])
+	    end
+    end,
+      
     spawn(fun()->do_desired_state() end),
-    log:log(?logger_info(info,"server started",[])),
+    log:log(?Log_info("server started",[])),
     {ok, #state{}
     }.
 
@@ -65,19 +77,19 @@ init([]) ->
 %% --------------------------------------------------------------------
 
 handle_call({started_nodes},_From, State) ->
-    Reply=lib_status:node_started(),
+    Reply=lib_host:node_started(),
     {reply, Reply, State};
-handle_call({host_status},_From, State) ->
+handle_call({host_host},_From, State) ->
     Reply=db_host:status(),
     {reply, Reply, State};
-handle_call({host_status,Id},_From, State) ->
+handle_call({host_host,Id},_From, State) ->
     Reply=db_host:status(Id),
     {reply, Reply, State};
-handle_call({node_status},_From, State) ->
-    Reply={node_status},
+handle_call({node_host},_From, State) ->
+    Reply={node_host},
     {reply, Reply, State};
-handle_call({node_status,Id},_From, State) ->
-    Reply={node_status,Id},
+handle_call({node_host,Id},_From, State) ->
+    Reply={node_host,Id},
     {reply, Reply, State};
 
 
@@ -96,7 +108,7 @@ handle_call({stop}, _From, State) ->
     {stop, normal, shutdown_ok, State};
 
 handle_call(Request, From, State) ->
-    log:log(?logger_info(ticket,"unmatched call",[Request, From])),
+    log:log(?Log_ticket("unmatched call",[Request, From])),
     Reply = {ticket,"unmatched call",Request, From},
     {reply, Reply, State}.
 
@@ -113,7 +125,7 @@ handle_cast({desired_state}, State) ->
     {noreply, State};
 
 handle_cast(Msg, State) ->
-    log:log(?logger_info(ticket,"unmatched cast",[Msg])),
+    log:log(?Log_ticket("unmatched cast",[Msg])),
     {noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -124,7 +136,7 @@ handle_cast(Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 handle_info(Info, State) ->
-    log:log(?logger_info(ticket,"unmatched info",[Info])),
+    log:log(?Log_ticket("unmatched info",[Info])),
     {noreply, State}.
 
 %% --------------------------------------------------------------------
@@ -153,7 +165,7 @@ do_desired_state()->
 		   ok;
 	       true->
 		   Result=rpc:call(node(),host_desired_state,start,[],2*60*1000),
-		   log:log(?logger_info(info,"Result",[Result]))
+		   log:log(?Log_info("Result",[Result]))
 	   end,
    
     timer:sleep(?ScheduleInterval),

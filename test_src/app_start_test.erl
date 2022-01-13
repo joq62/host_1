@@ -9,15 +9,15 @@
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include_lib("eunit/include/eunit.hrl").
--include("controller.hrl").
+
+
+
 %% --------------------------------------------------------------------
 
 %% External exports
 -export([start/0]).
 
-%-define(PodDir,"test.pod").
--define(PodDir,".").
+
 
 %% ====================================================================
 %% External functions
@@ -29,21 +29,19 @@
 %% Returns: non
 %% --------------------------------------------------------------------
 start()->
-    ?debugMsg("Start setup"),
-    ?assertEqual(ok,setup()),
-    ?debugMsg("stop setup"),
-
- %   ?debugMsg("Start testXXX"),
- %   ?assertEqual(ok,single_node()),
- %   ?debugMsg("stop single_node"),
-    
+    io:format("~p~n",[{"Start setup",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=setup(),
+    io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
+ %   
       %% End application tests
-    ?debugMsg("Start cleanup"),
-    ?assertEqual(ok,cleanup()),
-    ?debugMsg("Stop cleanup"),
-
-    ?debugMsg("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
+    io:format("~p~n",[{"Start cleanup",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=cleanup(),
+    io:format("~p~n",[{"Stop cleaup",?MODULE,?FUNCTION_NAME,?LINE}]),
+    
+    io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
+
+
 
 
 %% --------------------------------------------------------------------
@@ -51,22 +49,9 @@ start()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-setup()->
-    %load configas
-    ok=application:start(sd),
-    ok=application:start(bully),
-    ok=application:start(dbase_infra),
-    
-    Ids=lists:sort(db_host:ids()),
-    Ids=[{"c100","host1"},
-	 {"c100","host2"},
-	 {"c100","host3"},
-	 {"c100","host4"}],
 
-    Nodes=[db_host:node(Id)||Id<-Ids],
-    [host1@c100,host2@c100,host3@c100,host4@c100]=Nodes,
-    [rpc:call(Node,init,stop,[],1000)||Node<-Nodes],
-    timer:sleep(1000),
+setup()->
+ 
     ok.
 
 

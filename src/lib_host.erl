@@ -4,19 +4,23 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(lib_status).  
+-module(lib_host).   
    
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include("logger_infra.hrl").
+-include("log.hrl").
 %%---------------------------------------------------------------------
 %% Records for test
 %%
 
 %% --------------------------------------------------------------------
 %-compile(export_all).
+
 -export([
+	 ssh_call/3,
+	 restart/1,
+	 load_textfile/1,
 	 os_started/0,
 	 os_started/1,
 	 os_stopped/0,
@@ -28,9 +32,41 @@
 	 start/0
 	]).
 
+
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+ssh_call(Id,Msg,Timeout)->
+    Ip=db_host:ip(Id),
+    SshPort=db_host:port(Id),
+    Uid=db_host:uid(Id),
+    Pwd=db_host:passwd(Id),
+    {Host,_}=Id,
+   % io:format("get_hostname= ~p~n",[{?MODULE,?LINE,HostId,User,PassWd,IpAddr,Port}]),
+    rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg,Timeout],Timeout-1000).
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+restart(HostId)->
+    Type=db_host:type(HostId),
+    ssh_call(HostId,"reboot",5000).    
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+load_textfile(TableTextFile)->
+    db_host:create_table(TableTextFile).
+
+
 %% -------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
@@ -103,11 +139,12 @@ get_hostname(Parent,Id)->
     R1=rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg, 5*1000],4*1000),
     Result=case R1=:=[Host] of
 	       false->
-		    log:log(?logger_info(ticket,"error my_ssh,ssh_send",[R1,Id])),
+		    log:log(?Log_ticket("error my_ssh,ssh_send",[R1,Id])),
 		   [R1];
 	       true->
 		   ok
 	   end,
+    io:format("Result = ~p~n",[{Result,Ip,?MODULE,?FUNCTION_NAME,?LINE}]),
     Parent!{machine_status,{Id,Ip,SshPort,Result}}.
 
 check_host_status(machine_status,Vals,_)->
@@ -130,7 +167,7 @@ check_host_status([{Id,IpAddr,Port,{error,_Err}}|T],Acc) ->
 check_host_status([{Id,IpAddr,Port,{badrpc,timeout}}|T],Acc) ->
     check_host_status(T,[{missing,Id,IpAddr,Port}|Acc]);
 check_host_status([X|T],Acc) ->
-    io:format("Error = ~p~n",[{X,?MODULE,?FUNCTION_NAME,?LINE}]),
+   % io:format("Error = ~p~n",[{X,?MODULE,?FUNCTION_NAME,?LINE}]),
     check_host_status(T,[{x,X}|Acc]).
 
 %% --------------------------------------------------------------------

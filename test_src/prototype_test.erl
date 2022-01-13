@@ -4,12 +4,12 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(os_test).   
+-module(prototype_test).   
    
 %% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
--include_lib("kernel/include/logger.hrl").
+-include("log.hrl").
 %% --------------------------------------------------------------------
 
 %% External exports
@@ -29,23 +29,15 @@
 start()->
   %  io:format("~p~n",[{"Start setup",?MODULE,?FUNCTION_NAME,?LINE}]),
     ok=setup(),
-  %  io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
+    io:format("~p~n",[{"Stop setup",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start os_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
-%    ok=os_start(),
- %   io:format("~p~n",[{"Stop os_start()",?MODULE,?FUNCTION_NAME,?LINE}]),
+%    io:format("~p~n",[{"Start init()",?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=init(),
+    io:format("~p~n",[{"Stop init()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
- %   io:format("~p~n",[{"Start desired_state()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=desired_state(),
-    io:format("~p~n",[{"Stop desired_state()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
- %   io:format("~p~n",[{"Start os_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
-    ok=os_stop(),
-    io:format("~p~n",[{"Stop os_stop()",?MODULE,?FUNCTION_NAME,?LINE}]),
-
- 
-% 
-
+  %  io:format("~p~n",[{"Start stop_restart()",?MODULE,?FUNCTION_NAME,?LINE}]),
+  %  ok= stop_restart(),
+  %  io:format("~p~n",[{"Stop  stop_restart()",?MODULE,?FUNCTION_NAME,?LINE}]),
 
  %   
       %% End application tests
@@ -55,61 +47,17 @@ start()->
    
     io:format("------>"++atom_to_list(?MODULE)++" ENDED SUCCESSFUL ---------"),
     ok.
-
-
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-
-desired_state()->
-    X=host_desired_state:start(),
-    io:format("X = ~p~n",[X]),
-    timer:sleep(5000),
-    io:format("node_started  = ~p~n",[lib_status:node_started()]),
-    io:format("node_stopped  = ~p~n",[lib_status:node_stopped()]),
-    ok.
-%% --------------------------------------------------------------------
-%% Function:start/0 
-%% Description: Initiate the eunit tests, set upp needed processes etc
-%% Returns: non
-%% -------------------------------------------------------------------
-os_start()->
-    io:format("os_started() 1 = ~p~n",[lib_status:os_started()]),
-    io:format("os_stopped() 1 = ~p~n",[lib_status:os_stopped()]),
-
-    Stopped=lib_status:node_stopped(),
-    io:format("Started 1 = ~p~n",[lib_status:node_started()]),
-    io:format("Stopped 2 = ~p~n",[Stopped]),
-    
-    [lib_os:start(Host)||Host<-Stopped],
-    
-    io:format("Started 1 = ~p~n",[lib_status:node_started()]),
-    io:format("Stopped 2 = ~p~n",[lib_status:node_stopped()]),
-    
-    Env=[{Host,rpc:call(host_config:node(Host),application,get_env,[kublet,mode])}||Host<-lib_status:node_started()],
-       io:format("Env = ~p~n",[Env]),
-    ok.
+ %  io:format("application:which ~p~n",[{application:which_applications(),?FUNCTION_NAME,?MODULE,?LINE}]),
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
-os_stop()->
-
-    Started=lib_status:node_started(),
-    io:format("Started 1 = ~p~n",[Started]),
-    io:format("Stopped 2 = ~p~n",[lib_status:node_stopped()]),
+init()->
+    {ok,_}=host:start(),
     
-    [lib_os:restart(Host)||Host<-Started],
-    
-    io:format("Started 1 = ~p~n",[lib_status:node_started()]),
-    io:format("Stopped 2 = ~p~n",[lib_status:node_stopped()]),
    
-    io:format("os_started() 1 = ~p~n",[lib_status:os_started()]),
-    io:format("os_stopped() 1 = ~p~n",[lib_status:os_stopped()]),
     ok.
 
 %% --------------------------------------------------------------------
@@ -117,19 +65,28 @@ os_stop()->
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% -------------------------------------------------------------------
- 
 
+
+
+  
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% -------------------------------------------------------------------
+a()->
+    						
+
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 setup()->
- %   {ok,I}=file:consult("boot.config"), 
    
-    % create vm dirs
- %   NodesToStart=proplists:get_value(nodes_to_start,I),
-   
- %   Dirs=[Dir||{_Host,Dir,Args}<-NodesToStart],
- %   Dirs=["1","2","3","4","5","6","7","8","9","controller","sd","dbase"],
- %   [os:cmd("rm -rf "++Dir)||Dir<-Dirs],   
-   ok.
-
+        
+    ok.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
@@ -138,11 +95,10 @@ setup()->
 %% -------------------------------------------------------------------    
 
 cleanup()->
-  
+   
     ok.
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
-
