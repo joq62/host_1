@@ -41,6 +41,71 @@
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+
+availble_host_nodes(CallingNode,Constraints)->
+    {_,HostName} =misc_node:vmid_hostid(CallingNode),
+    HostNameNodes=[{Id,db_host:hostname(Id),db_host:node(Id)}||Id<-db_host:ids()],
+    [Node||{Id,HostNameX,Node}<-HostNameNodes,
+	   pong=:=net_adm:ping(Node),          % Node alive
+	   HostNameX/=HostName,                % Ensure that Callling nodes Host is not among ????
+	   chck_constraints(Id,Constraints)].  % % Fullfills the constraints
+
+
+%Constraints=[{host,"c200"},{host,"c201"},{hw,conbee2},{port,6523}]
+% capabilities=[{hw,conbee2},{port,6523},{hw,tellstick},{port,7788}
+
+chck_constraints(Id,[])->
+    true;
+chck_constraints(Id,Constraints)->
+    
+    % Enough if one is Host is available
+    case [Host ||{host,Host}<-Constraints,
+		db_host:hostname(Id)=:=Host] of
+	[]-> false;
+	_->
+	    %% Port all ports needs to present
+	    PortNeeded=[PortX ||{port,PortX}<-Constraints],
+	    case [PortX ||PortX<-PortNeeded,{port,Port}<-db_host:constraints(Id),
+			  PortX=:=Port] of
+		[]->
+		    false;
+		PortXList-> 
+		    DiffPort=lists:flatlength(PortNeeded)-lists:flatlength(PortXList), 
+		    if
+			DiffPort/=0 ->
+			    false;
+			true->    %% All Hw needs to present
+			    HwNeeded=[HwX ||{hw,HwX}<-Constraints],
+			    case [HwX ||HwX<-HwNeeded,{hw,Hw}<-db_host:constraints(Id),
+					HwX=:=Hw] of
+				[]->
+				    false;
+				HwXList->
+				    DiffHw=lists:flatlength(HwNeeded)-lists:flatlength(HwXList), 
+				    if
+					DiffHw/=0 ->
+					    false;
+					true->
+					    true
+				    end
+			    end
+		    end
+	    end
+    end.
+
+    
+    
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
 ssh_call(Id,Msg,Timeout)->
     Ip=db_host:ip(Id),
     SshPort=db_host:port(Id),
@@ -136,15 +201,16 @@ get_hostname(Parent,Id)->
     {Host,_}=Id,
    % io:format("get_hostname= ~p~n",[{?MODULE,?LINE,HostId,User,PassWd,IpAddr,Port}]),
     Msg="hostname",
-    R1=rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg, 5*1000],4*1000),
+    R1=rpc:call(node(),my_ssh,ssh_send,[Ip,SshPort,Uid,Pwd,Msg, 5*1000],5*1000),
+ %   io:format("get_hostname= ~p~n",[{?MODULE,?LINE,R1,Host}]),
     Result=case R1=:=[Host] of
 	       false->
-		    log:log(?Log_ticket("error my_ssh,ssh_send",[R1,Id])),
+		    log:log(?Log_ticket("error my_ssh,ssh_send",[Id,Ip,node()])),
 		   [R1];
 	       true->
 		   ok
 	   end,
-    io:format("Result = ~p~n",[{Result,Ip,?MODULE,?FUNCTION_NAME,?LINE}]),
+   % io:format("Result = ~p~n",[{Result,Ip,?MODULE,?FUNCTION_NAME,?LINE}]),
     Parent!{machine_status,{Id,Ip,SshPort,Result}}.
 
 check_host_status(machine_status,Vals,_)->

@@ -76,6 +76,14 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
+handle_call({availble_host_nodes,CallingNode},_From, State) ->
+    Reply=lib_host:availble_host_nodes(CallingNode),
+    {reply, Reply, State};
+
+handle_call({availble_host_nodes,CallingNode,Constraints},_From, State) ->
+    Reply=lib_host:availble_host_nodes(CallingNode,Constraints),
+    {reply, Reply, State};
+
 handle_call({started_nodes},_From, State) ->
     Reply=lib_host:node_started(),
     {reply, Reply, State};
@@ -164,8 +172,8 @@ do_desired_state()->
 	       false->
 		   ok;
 	       true->
-		   Result=rpc:call(node(),host_desired_state,start,[],2*60*1000),
-		   log:log(?Log_info("Result",[Result]))
+		   Result=rpc:call(node(),host_desired_state,start,[],2*60*1000)
+		  % log:log(?Log_info("Result",[Result]))
 	   end,
    
     timer:sleep(?ScheduleInterval),

@@ -1,2 +1,8 @@
+-ifdef(unit_test).
+-define(TextFile,"test_host.config").
+-define(KubeletNodes,[host0@c100,host1@c100,host2@c100]).
+-else.
 -define(TextFile,"host.config").
+-define(KubeletNodes,[kubelet@c200,kubelet@c201,kubelet@c202]).
+-endif.
 -define(ScheduleInterval,20*1000).

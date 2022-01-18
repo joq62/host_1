@@ -18,6 +18,9 @@
 -define(SERVER,host_server).
 %% --------------------------------------------------------------------
 -export([
+	 availble_host_nodes/1,
+	 availble_host_nodes/2,
+
 	 started_nodes/0,
 	 stopped/0,
 	 started/0,
@@ -62,6 +65,10 @@ stop()-> gen_server:call(?SERVER, {stop},infinity).
 ping()-> 
     gen_server:call(?SERVER, {ping},infinity).
 
+availble_host_nodes(CallingNode)->
+        gen_server:call(?SERVER, {availble_host_nodes,CallingNode},infinity).
+availble_host_nodes(CallingNode,Constraints)->
+        gen_server:call(?SERVER, {availble_host_nodes,CallingNode,Constraints},infinity).
 
 started_nodes()-> 
     gen_server:call(?SERVER, {started_nodes},infinity).

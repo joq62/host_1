@@ -1,5 +1,4 @@
 {tables,[{host,[{attributes,[id,hostname,ip,ssh_port,uid,pwd,node,type,start_args,application_dir,capabilities,status]}]}]}.
-
 {host,{"c200","host"},
       "c200",
       "192.168.0.200",
@@ -38,6 +37,23 @@
       auto_boot,
       [],
       "host_c202.applications",
+      [],
+      created
+}.
+
+{host,{"c203","host"},
+      "c203",
+      "192.168.0.203",
+      22,
+      "pi",
+      "festum01",
+      'kubelet@c203',
+      non_auto_boot,
+      [{erl_cmd,"/snap/erlang/current/usr/bin/erl -detached"},
+       {cookie,"cookie_test"},
+       {env_vars,[]},
+       {nodename,"kubelet"}],
+      "host_c203.applications",
       [],
       created
 }.
