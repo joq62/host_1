@@ -13,10 +13,10 @@ unit_test:
 #	common
 	erlc -D unit_test -I ../log_server/include -o ebin ../../common/src/*.erl;
 #	sd
+	cp ../sd/src/*.app ebin;
 	erlc -D unit_test -I ../log_server/include -o ebin ../sd/src/*.erl;
-#	dbase
-	erlc -D unit_test -I ../log_server/include -o ebin ../dbase_server/src/*.erl;
-#	host
+#	application
+	cp src/*.app ebin;
 	erlc -D unit_test -I ../log_server/include -I include -o ebin src/*.erl;
 #	test application
 	cp test_src/*.app test_ebin;

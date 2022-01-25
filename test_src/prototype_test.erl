@@ -55,7 +55,28 @@ start()->
 %% Returns: non
 %% -------------------------------------------------------------------
 init()->
-    {ok,_}=host:start(),
+    {ok,Files}=file:list_dir("."),
+    [os:cmd("rm -r "++File)||File<-Files,
+			     ".vm"=:=filename:extension(File)],
+    % s1.vm Create first slave just vm and sd
+    RootDir="s1.vm",
+    ok=file:make_dir(RootDir),
+    {ok,HostName}=net:gethostname(),
+    NodeName="s1",
+    Cookie=atom_to_list(erlang:get_cookie()),
+    PaVmEbin=" -pa ebin ",
+    PaSdEbin=" -pa ebin ",
+    PaArgs=PaVmEbin++PaSdEbin,
+    EnvArgs=" ",
+    {ok,S1}=lib_slave:create(HostName,NodeName,Cookie,PaArgs,EnvArgs),
+    ok=rpc:call(S1,application,start,[sd],5000),
+    ok=rpc:call(S1,application,start,[vm],5000),
+    
+    
+    
+    
+    
+
     
    
     ok.

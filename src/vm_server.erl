@@ -7,7 +7,7 @@
 %%% 
 %%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(host_server). 
+-module(vm_server). 
 
 -behaviour(gen_server).
 
@@ -15,7 +15,7 @@
 %% Include files
 %% --------------------------------------------------------------------
 -include("log.hrl").
--include("host.hrl").
+-include("vm.hrl").
 %% --------------------------------------------------------------------
 
 
@@ -28,6 +28,9 @@
 -export([init/1, handle_call/3,handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -record(state, {
+		root_dir,
+		desired_apps, %[{App,Vsn,GitPath},..]
+		current_apps %[{App,Vsn,eexist|not_loaded|not_started|loaded|started}
 	       }).
 
 %% ====================================================================
@@ -48,22 +51,13 @@
 %%          {stop, Reason}
 %% --------------------------------------------------------------------
 init([]) ->
-    case code:where_is_file(?TextFile) of
-	non_existing->
-	    rpc:cast(node(),log,log,[?Log_ticket("non_existing textfile",[])]);
-	TextFile->
-	    case rpc:call(node(),lib_host,load_textfile,[TextFile],5000) of
-		{atomic,ok}->
-		    ok;
-		{error,Reason}->
-		    rpc:cast(node(),log,log,[?Log_ticket("error in load_textfile to mnesia ",[Reason])])
-	    end
-    end,
-      
-    spawn(fun()->do_desired_state() end),
-    log:log(?Log_info("server started",[])),
-    {ok, #state{}
-    }.
+    
+%    {ok,RootDir}=application:get_env(root_dir),
+%    {ok,DesiredApps}=application:get_env(desired_apps),
+    
+    {ok, #state{root_dir=undefined,
+	       desired_apps=[],
+	       current_apps=[]}}.
 
 %% --------------------------------------------------------------------
 %% Function: handle_call/3
@@ -76,36 +70,32 @@ init([]) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %% --------------------------------------------------------------------
 
-handle_call({availble_host_nodes,CallingNode},_From, State) ->
-    Reply=lib_host:availble_host_nodes(CallingNode),
-    {reply, Reply, State};
 
-handle_call({availble_host_nodes,CallingNode,Constraints},_From, State) ->
-    Reply=lib_host:availble_host_nodes(CallingNode,Constraints),
-    {reply, Reply, State};
+handle_call({set_root_dir,RootDir},_From, State) ->
+    Reply= case State#state.root_dir of
+	       undefined->
+		   NewState=State#state{root_dir=RootDir},
+		   ok;
+	       ExistingRootDir->
+		   NewState=State,
+		   {error,[alredy_exists,ExistingRootDir]}
+	   end,
+    {reply, Reply, NewState};
 
-handle_call({started_nodes},_From, State) ->
-    Reply=lib_host:node_started(),
-    {reply, Reply, State};
-handle_call({host_host},_From, State) ->
-    Reply=db_host:status(),
-    {reply, Reply, State};
-handle_call({host_host,Id},_From, State) ->
-    Reply=db_host:status(Id),
-    {reply, Reply, State};
-handle_call({node_host},_From, State) ->
-    Reply={node_host},
-    {reply, Reply, State};
-handle_call({node_host,Id},_From, State) ->
-    Reply={node_host,Id},
-    {reply, Reply, State};
 
+handle_call({desired_apps,AppInfoList},_From, State) ->
+    NewState=State#state{desired_apps=AppInfoList},
+    Reply= ok,
+    {reply, Reply, NewState};
+
+
+handle_call({ping},_From, State) ->
+    Reply=pong,
+    {reply, Reply, State};
 
 handle_call({stopped},_From, State) ->
     Reply=ok,
     {reply, Reply, State};
-
-
 
 
 handle_call({not_implemented},_From, State) ->
@@ -129,7 +119,8 @@ handle_call(Request, From, State) ->
 %% --------------------------------------------------------------------
 
 handle_cast({desired_state}, State) ->
-    spawn(fun()->do_desired_state() end),
+    
+    spawn(fun()->do_desired_state(State#state.root_dir,State#state.desired_apps) end),
     {noreply, State};
 
 handle_cast(Msg, State) ->
@@ -166,16 +157,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% --------------------------------------------------------------------
 %%% Internal functions
 %% --------------------------------------------------------------------
-do_desired_state()->
+do_desired_state(RootDir,DesiredApps)->
     % io:format("~p~n",[{time(),node(),?MODULE,?FUNCTION_NAME,?LINE,CallerPid}]),
-    case bully:am_i_leader(node()) of
-	       false->
-		   ok;
-	       true->
-		   Result=rpc:call(node(),host_desired_state,start,[],2*60*1000)
-		  % log:log(?Log_info("Result",[Result]))
-	   end,
-   
+    rpc:call(node(),lib_vm,desired_state,[RootDir,DesiredApps]),
     timer:sleep(?ScheduleInterval),
-    rpc:cast(node(),host,desired_state,[]).
+    rpc:cast(node(),vm,desired_state,[]).
 		  

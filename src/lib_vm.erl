@@ -2,11 +2,11 @@
 %%% Author  : uabjle
 %%% Description : dbase using dets 
 %%% 
-%%% Created : 10 dec 20121
+%%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(host_desired_state).  
-    
-%% -------------------------------------------------------2 -------------
+-module(lib_vm).   
+   
+%% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
 -include("log.hrl").
@@ -16,36 +16,35 @@
 
 %% --------------------------------------------------------------------
 %-compile(export_all).
--export([
-	 start/0
 
-	 ]).
+-export([
+
+	desired_state/2
+	]).
+
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
-start()->
-   % [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
-    StartedOs=lists:sort(lib_host:os_started()),
-    StartedHostNodes=lists:sort(lib_host:node_started()),
-    HostsToStart=[HostId||HostId<-StartedOs,
-			  false=:=lists:member(HostId,StartedHostNodes)],
-    case HostsToStart of
-	[]->
-	    ok;
-	HostsToStart->
-	    log:log(?Log_ticket("hosts to start ",[HostsToStart])),
-	 %   Result=[pod:ssh_start(HostId)||HostId<-HostsToStart],
-	  %  [net_adm:ping(db_host:node(HostId))||HostId<-db_host:ids()],
-	 %   log:log(?Log_ticket("Start Result ",[Result])),
-	   % Result=pod:restart_hosts_nodes(HostsToStart),
-	    Result=glurk,
-	    Result
-	    
-    end.
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+desired_state(RootDir,DesiredApps)->
+    
+    ok.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+% absent
+% unload == application:unload(App) and delete
+% load == git clone and application:load(app).
+% started == application:start(App)
+% stopped== application:stop(App)
+% application:which_applications()-> running applications not loaded or unloaded
+% application:loaded_applications()-> loaded and running , not unloaded
+

@@ -2,11 +2,11 @@
 %%% Author  : uabjle
 %%% Description : dbase using dets 
 %%% 
-%%% Created : 10 dec 20121
+%%% Created : 10 dec 2012
 %%% -------------------------------------------------------------------
--module(host_desired_state).  
-    
-%% -------------------------------------------------------2 -------------
+-module(lib_cluster).  
+   
+%% --------------------------------------------------------------------
 %% Include files
 %% --------------------------------------------------------------------
 -include("log.hrl").
@@ -17,26 +17,34 @@
 %% --------------------------------------------------------------------
 %-compile(export_all).
 -export([
-	 start/0
-
-	 ]).
+	 connect/1
+	]).
+	 
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
-start()->
-    MissingHosts=[HostId||HostId<-db_host:ids(),
-			  pang=:=net_adm:ping(db_host:node(HostId))],
-    case MissingHosts of
-	[]->
-	    ok;
-	HostsToStart->
-	    log:log(?Log_ticket("Missinghosts to start ",[MissingHosts])),
-	    ok	    
-    end.
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+connect(Nodes)->
+    [net_kernel:connect_node(Node)||Node<-Nodes].
 
 %% --------------------------------------------------------------------
 %% Function:start/0 
 %% Description: Initiate the eunit tests, set upp needed processes etc
 %% Returns: non
 %% --------------------------------------------------------------------
+ 
+
+%% --------------------------------------------------------------------
+%% Function:start/0 
+%% Description: Initiate the eunit tests, set upp needed processes etc
+%% Returns: non
+%% --------------------------------------------------------------------
+
+    
+
+
